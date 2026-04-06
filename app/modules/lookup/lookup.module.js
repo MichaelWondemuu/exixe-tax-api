@@ -7,6 +7,7 @@ import { VerificationBodyRepository } from './repository/verification-body.repos
 import { LicensingAuthorityRepository } from './repository/licensing-authority.repository.js';
 import { CategoryRepository } from './repository/category.repository.js';
 import { ProductTypeRepository } from './repository/product-type.repository.js';
+import { MeasurementRepository } from './repository/measurement.repository.js';
 import { CitiesService } from './usecases/cities/cities.service.js';
 import { CitiesCommandService } from './usecases/cities/cities.command.js';
 import { CitiesQueryService } from './usecases/cities/cities.query.js';
@@ -19,18 +20,22 @@ import { CategoryQueryService } from './usecases/categories/category.query.js';
 import { CategoryCommandService } from './usecases/categories/category.command.js';
 import { ProductTypeQueryService } from './usecases/product-types/product-type.query.js';
 import { ProductTypeCommandService } from './usecases/product-types/product-type.command.js';
+import { MeasurementQueryService } from './usecases/measurements/measurement.query.js';
+import { MeasurementCommandService } from './usecases/measurements/measurement.command.js';
 import { CitiesController } from './controllers/cities.controller.js';
 import { SectorController } from './controllers/sector.controller.js';
 import { VerificationBodyController } from './controllers/verification-body.controller.js';
 import { LicensingAuthorityController } from './controllers/licensing-authority.controller.js';
 import { CategoryController } from './controllers/category.controller.js';
 import { ProductTypeController } from './controllers/product-type.controller.js';
+import { MeasurementController } from './controllers/measurement.controller.js';
 import { buildCitiesRouter } from './routes/cities.routes.js';
 import { buildSectorRouter } from './routes/sector.routes.js';
 import { buildVerificationBodyRouter } from './routes/verification-body.routes.js';
 import { buildLicensingAuthorityRouter } from './routes/licensing-authority.routes.js';
 import { buildCategoryRouter } from './routes/category.routes.js';
 import { buildProductTypeRouter } from './routes/product-type.routes.js';
+import { buildMeasurementRouter } from './routes/measurement.routes.js';
 
 export const createLookupModule = () => {
   const regionRepository = new RegionRepository();
@@ -41,6 +46,7 @@ export const createLookupModule = () => {
   const licensingAuthorityRepository = new LicensingAuthorityRepository();
   const categoryRepository = new CategoryRepository();
   const productTypeRepository = new ProductTypeRepository();
+  const measurementRepository = new MeasurementRepository();
 
   const citiesService = new CitiesService({
     regionRepository,
@@ -76,6 +82,12 @@ export const createLookupModule = () => {
   const productTypeCommandService = new ProductTypeCommandService({
     productTypeRepository,
   });
+  const measurementQueryService = new MeasurementQueryService({
+    measurementRepository,
+  });
+  const measurementCommandService = new MeasurementCommandService({
+    measurementRepository,
+  });
 
   const citiesController = new CitiesController({
     citiesQueryService,
@@ -99,6 +111,10 @@ export const createLookupModule = () => {
     productTypeQueryService,
     productTypeCommandService,
   });
+  const measurementController = new MeasurementController({
+    measurementQueryService,
+    measurementCommandService,
+  });
 
   const router = createAsyncRouter();
   router.use(
@@ -116,6 +132,7 @@ export const createLookupModule = () => {
   );
   router.use('/categories', buildCategoryRouter({ categoryController }));
   router.use('/product-types', buildProductTypeRouter({ productTypeController }));
+  router.use('/measurements', buildMeasurementRouter({ measurementController }));
 
   return Object.freeze({
     router,

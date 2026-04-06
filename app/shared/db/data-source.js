@@ -30,6 +30,7 @@ import { LicensingAuthority } from '../../modules/lookup/persistences/licensing-
 import { BusinessType } from '../../modules/lookup/persistences/business-type.model.js';
 import { Category } from '../../modules/lookup/persistences/category.model.js';
 import { ProductType } from '../../modules/lookup/persistences/product-type.model.js';
+import { Measurement } from '../../modules/lookup/persistences/measurement.model.js';
 import { OrgRegistrationApplication } from '../../modules/registration/persistences/org-registration-application.model.js';
 
 // Initialize all models
@@ -58,6 +59,7 @@ export const SectorModel = Sector(sequelize);
 export const BusinessTypeModel = BusinessType(sequelize);
 export const CategoryModel = Category(sequelize);
 export const ProductTypeModel = ProductType(sequelize);
+export const MeasurementModel = Measurement(sequelize);
 export const OrgRegistrationApplicationModel =
   OrgRegistrationApplication(sequelize);
 
@@ -85,6 +87,7 @@ export const models = {
   BusinessType: BusinessTypeModel,
   Category: CategoryModel,
   ProductType: ProductTypeModel,
+  Measurement: MeasurementModel,
   OrgRegistrationApplication: OrgRegistrationApplicationModel,
 };
 
