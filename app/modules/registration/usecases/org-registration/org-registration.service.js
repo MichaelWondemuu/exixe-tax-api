@@ -18,8 +18,20 @@ export class OrgRegistrationService {
   async submitApplication(_req, body) {
     await ensureDefaultBusinessTypes();
     const legalName = body.legal_name ?? body.legalName;
+    const tinNumberRaw = body.tin_number ?? body.tinNumber ?? null;
+    const tinNumber =
+      tinNumberRaw == null || String(tinNumberRaw).trim() === ''
+        ? null
+        : String(tinNumberRaw).trim();
     if (!legalName || String(legalName).trim() === '') {
       throw new HttpError(400, 'VALIDATION_ERROR', 'legal_name is required');
+    }
+    if (tinNumber && tinNumber.length > 64) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'tin_number must be at most 64 characters',
+      );
     }
 
     let businessTypeId = body.business_type_id ?? body.businessTypeId ?? null;
@@ -35,6 +47,7 @@ export class OrgRegistrationService {
       businessTypeId,
       contactEmail: body.contact_email ?? body.contactEmail ?? null,
       contactPhone: body.contact_phone ?? body.contactPhone ?? null,
+      tinNumber,
       details:
         body.details && typeof body.details === 'object' ? body.details : null,
       status: 'PENDING',
