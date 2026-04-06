@@ -39,7 +39,7 @@ const bootstrap = async () => {
     }
     logger.info('Database connected successfully');
 
-    if (env.nodeEnv !== 'ddevelopment') {
+    if (env.nodeEnv === 'development') {
       try {
         logger.info('Development mode: Syncing database...');
         await syncDatabase({
@@ -48,6 +48,7 @@ const bootstrap = async () => {
             drop: true,
           },
         });
+        
         logger.info('Database synced successfully');
       } catch (err) {
         logger.error('Failed to sync database', {
@@ -77,9 +78,7 @@ const bootstrap = async () => {
     env.nodeEnv === 'production'
       ? ['https://invoice.cheche.et']
       : [
-          'https://invoice.cheche.et',
-          'http://localhost:3000',
-          'http://localhost:5173',
+          '*',
         ];
 
   // Configure CORS with explicit origin allowlist (especially important with credentials=true)
