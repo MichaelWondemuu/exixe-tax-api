@@ -1,53 +1,51 @@
 import { DataTypes } from 'sequelize';
 
 /**
- * Product entity.
- * Table: products
+ * Product variant entity.
+ * Table: product_variants
  */
-export const Product = (sequelize) => {
+export const ProductVariant = (sequelize) => {
   const model = sequelize.define(
-    'Product',
+    'ProductVariant',
     {
       id: {
         type: DataTypes.UUID,
         primaryKey: true,
         defaultValue: DataTypes.UUIDV4,
       },
+      productId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        field: 'product_id',
+      },
       name: {
         type: DataTypes.STRING(255),
         allowNull: false,
         field: 'name',
       },
-      description: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        field: 'description',
-      },
-      categoryId: {
-        type: DataTypes.UUID,
+      sku: {
+        type: DataTypes.STRING(100),
         allowNull: false,
-        field: 'category_id',
+        unique: true,
+        field: 'sku',
       },
-      productTypeId: {
-        type: DataTypes.UUID,
+      unitValue: {
+        type: DataTypes.DECIMAL(18, 3),
         allowNull: false,
-        field: 'product_type_id',
+        defaultValue: 1,
+        field: 'unit_value',
       },
-      measurementId: {
-        type: DataTypes.UUID,
+      sellingPrice: {
+        type: DataTypes.DECIMAL(18, 2),
         allowNull: false,
-        field: 'measurement_id',
+        defaultValue: 0,
+        field: 'selling_price',
       },
       isActive: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true,
         field: 'is_active',
-      },
-      imageUrl: {
-        type: DataTypes.STRING(500),
-        allowNull: true,
-        field: 'image_url',
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -64,7 +62,7 @@ export const Product = (sequelize) => {
     },
     {
       sequelize,
-      tableName: 'products',
+      tableName: 'product_variants',
       timestamps: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',
@@ -73,21 +71,13 @@ export const Product = (sequelize) => {
   );
 
   model.associate = (models) => {
-    model.belongsTo(models.Category, {
-      foreignKey: 'categoryId',
-      as: 'category',
-    });
-    model.belongsTo(models.ProductType, {
-      foreignKey: 'productTypeId',
-      as: 'productType',
-    });
-    model.belongsTo(models.Measurement, {
-      foreignKey: 'measurementId',
-      as: 'measurement',
-    });
-    model.hasMany(models.ProductVariant, {
+    model.belongsTo(models.Product, {
       foreignKey: 'productId',
-      as: 'variants',
+      as: 'product',
+    });
+    model.hasMany(models.ProductVariantAttribute, {
+      foreignKey: 'variantId',
+      as: 'attributes',
       onDelete: 'CASCADE',
       hooks: true,
     });

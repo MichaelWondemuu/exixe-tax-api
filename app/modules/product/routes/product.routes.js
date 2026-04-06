@@ -10,13 +10,28 @@ import { createSingleImageUploadMiddleware } from '../../../shared/utils/file-up
 const productBodySchema = yup.object({
   name: yup.string().trim().min(1).max(255).required(),
   description: yup.string().trim().max(2000).nullable(),
-  sku: yup.string().trim().max(100).nullable(),
   categoryId: yup.string().uuid().required(),
   productTypeId: yup.string().uuid().required(),
   measurementId: yup.string().uuid().required(),
-  unitValue: yup.number().moreThan(0).required(),
-  sellingPrice: yup.number().min(0).required(),
   isActive: yup.boolean().required(),
+  variants: yup
+    .mixed()
+    .required()
+    .test(
+      'variants-array-or-json',
+      'variants must be an array or JSON string array',
+      (value) => {
+        if (Array.isArray(value)) return true;
+        if (typeof value === 'string') {
+          try {
+            return Array.isArray(JSON.parse(value));
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      },
+    ),
 });
 
 const productIdParamsSchema = yup.object({

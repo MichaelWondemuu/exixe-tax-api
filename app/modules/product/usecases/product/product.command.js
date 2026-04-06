@@ -1,26 +1,36 @@
 import { HttpError } from '../../../../shared/utils/http-error.js';
 import { saveImageToAssets } from '../../../../shared/utils/file-upload.util.js';
+import { models } from '../../../../shared/db/data-source.js';
 
 function normalizePayload(body = {}) {
+  const rawVariants = body.variants;
+  let variants;
+  if (typeof rawVariants === 'string') {
+    try {
+      const parsed = JSON.parse(rawVariants);
+      variants = Array.isArray(parsed) ? parsed : undefined;
+    } catch {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'variants must be valid JSON array',
+      );
+    }
+  } else if (Array.isArray(rawVariants)) {
+    variants = rawVariants;
+  }
+
   return {
     name: body.name?.trim(),
     description: body.description?.trim() || null,
-    sku: body.sku?.trim() || null,
     categoryId: body.categoryId,
     productTypeId: body.productTypeId,
     measurementId: body.measurementId,
-    unitValue:
-      body.unitValue !== undefined && body.unitValue !== null
-        ? Number(body.unitValue)
-        : 1,
-    sellingPrice:
-      body.sellingPrice !== undefined && body.sellingPrice !== null
-        ? Number(body.sellingPrice)
-        : 0,
     isActive:
       body.isActive !== undefined && body.isActive !== null
         ? Boolean(body.isActive)
         : true,
+    variants,
   };
 }
 
@@ -72,6 +82,81 @@ export class ProductCommandService {
     return imageUrl;
   };
 
+  syncVariants = async (productId, variants) => {
+    if (!Array.isArray(variants)) return;
+
+    const seenSkus = new Set();
+    for (const rawVariant of variants) {
+      const sku = rawVariant?.sku ? String(rawVariant.sku).trim() : '';
+      if (!sku) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'variant sku is required',
+        );
+      }
+      if (seenSkus.has(sku)) {
+        throw new HttpError(
+          409,
+          'PRODUCT_VARIANT_SKU_DUPLICATE',
+          `Duplicate variant sku in payload: ${sku}`,
+        );
+      }
+      seenSkus.add(sku);
+    }
+
+    const existingVariants = await models.ProductVariant.findAll({
+      where: { productId },
+      attributes: ['id'],
+    });
+    const variantIds = existingVariants.map((v) => v.id);
+    if (variantIds.length > 0) {
+      await models.ProductVariantAttribute.destroy({
+        where: { variantId: variantIds },
+      });
+    }
+
+    await models.ProductVariant.destroy({ where: { productId } });
+
+    for (const rawVariant of variants) {
+      const name = rawVariant?.name ? String(rawVariant.name).trim() : '';
+      if (!name) continue;
+
+      const variant = await models.ProductVariant.create({
+        productId,
+        name,
+        sku: String(rawVariant.sku).trim(),
+        unitValue:
+          rawVariant?.unitValue !== undefined && rawVariant?.unitValue !== null
+            ? Number(rawVariant.unitValue)
+            : 1,
+        sellingPrice:
+          rawVariant?.sellingPrice !== undefined &&
+          rawVariant?.sellingPrice !== null
+            ? Number(rawVariant.sellingPrice)
+            : 0,
+        isActive:
+          rawVariant?.isActive !== undefined && rawVariant?.isActive !== null
+            ? Boolean(rawVariant.isActive)
+            : true,
+      });
+
+      const attrs = Array.isArray(rawVariant?.attributes)
+        ? rawVariant.attributes
+        : [];
+      for (const rawAttr of attrs) {
+        const key = rawAttr?.key ? String(rawAttr.key).trim() : '';
+        const value = rawAttr?.value ? String(rawAttr.value).trim() : '';
+        if (!key || !value) continue;
+        await models.ProductVariantAttribute.create({
+          variantId: variant.id,
+          key,
+          value,
+        });
+      }
+    }
+  };
+
   createProduct = async (req, body, file = null) => {
     const payload = normalizePayload(body);
     if (!payload.name) {
@@ -80,19 +165,33 @@ export class ProductCommandService {
 
     await this.validateReferences(payload);
 
-    if (payload.sku) {
-      const existingBySku = await this.productRepository.findBySku(payload.sku);
+    if (!Array.isArray(payload.variants) || payload.variants.length === 0) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'At least one variant is required',
+      );
+    }
+    for (const rawVariant of payload.variants) {
+      const sku = rawVariant?.sku ? String(rawVariant.sku).trim() : '';
+      if (!sku) continue;
+      const existingBySku = await this.productRepository.findVariantBySku(sku);
       if (existingBySku) {
-        throw new HttpError(409, 'PRODUCT_SKU_EXISTS', 'SKU already exists');
+        throw new HttpError(
+          409,
+          'PRODUCT_VARIANT_SKU_EXISTS',
+          `Variant SKU already exists: ${sku}`,
+        );
       }
     }
 
-    const created = await this.productRepository.create(req, payload);
+    const { variants, ...productData } = payload;
+    const created = await this.productRepository.create(req, productData);
+    await this.syncVariants(created.id, variants);
     if (file?.buffer) {
       await this.saveProductImage(req, created.id, file);
-      return this.productRepository.findByIdDetailed(req, created.id);
     }
-    return created;
+    return this.productRepository.findByIdDetailed(req, created.id);
   };
 
   updateProduct = async (req, id, body, file = null) => {
@@ -108,22 +207,33 @@ export class ProductCommandService {
 
     await this.validateReferences(payload);
 
-    if (payload.sku) {
-      const existingBySku = await this.productRepository.findBySku(payload.sku);
-      if (existingBySku && existingBySku.id !== id) {
-        throw new HttpError(409, 'PRODUCT_SKU_EXISTS', 'SKU already exists');
+    if (Array.isArray(payload.variants)) {
+      for (const rawVariant of payload.variants) {
+        const sku = rawVariant?.sku ? String(rawVariant.sku).trim() : '';
+        if (!sku) continue;
+        const existingBySku = await this.productRepository.findVariantBySku(sku);
+        if (existingBySku && existingBySku.productId !== id) {
+          throw new HttpError(
+            409,
+            'PRODUCT_VARIANT_SKU_EXISTS',
+            `Variant SKU already exists: ${sku}`,
+          );
+        }
       }
     }
 
-    const updated = await this.productRepository.update(req, id, payload);
+    const { variants, ...productData } = payload;
+    const updated = await this.productRepository.update(req, id, productData);
     if (!updated) {
       throw new HttpError(404, 'NOT_FOUND', 'Product not found');
     }
+    if (Array.isArray(variants)) {
+      await this.syncVariants(id, variants);
+    }
     if (file?.buffer) {
       await this.saveProductImage(req, id, file);
-      return this.productRepository.findByIdDetailed(req, id);
     }
-    return updated;
+    return this.productRepository.findByIdDetailed(req, id);
   };
 
   deleteProduct = async (req, id) => {

@@ -32,6 +32,8 @@ import { Category } from '../../modules/lookup/persistences/category.model.js';
 import { ProductType } from '../../modules/lookup/persistences/product-type.model.js';
 import { Measurement } from '../../modules/lookup/persistences/measurement.model.js';
 import { Product } from '../../modules/product/persistences/product.model.js';
+import { ProductVariant } from '../../modules/product/persistences/product-variant.model.js';
+import { ProductVariantAttribute } from '../../modules/product/persistences/product-variant-attribute.model.js';
 import { OrgRegistrationApplication } from '../../modules/registration/persistences/org-registration-application.model.js';
 
 // Initialize all models
@@ -62,6 +64,8 @@ export const CategoryModel = Category(sequelize);
 export const ProductTypeModel = ProductType(sequelize);
 export const MeasurementModel = Measurement(sequelize);
 export const ProductModel = Product(sequelize);
+export const ProductVariantModel = ProductVariant(sequelize);
+export const ProductVariantAttributeModel = ProductVariantAttribute(sequelize);
 export const OrgRegistrationApplicationModel =
   OrgRegistrationApplication(sequelize);
 
@@ -91,6 +95,8 @@ export const models = {
   ProductType: ProductTypeModel,
   Measurement: MeasurementModel,
   Product: ProductModel,
+  ProductVariant: ProductVariantModel,
+  ProductVariantAttribute: ProductVariantAttributeModel,
   OrgRegistrationApplication: OrgRegistrationApplicationModel,
 };
 
