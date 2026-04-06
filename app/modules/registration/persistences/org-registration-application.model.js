@@ -43,6 +43,11 @@ export const OrgRegistrationApplication = (sequelize) => {
         allowNull: true,
         field: 'contact_phone',
       },
+      tinNumber: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+        field: 'tin_number',
+      },
       details: {
         type: DataTypes.JSONB,
         allowNull: true,
