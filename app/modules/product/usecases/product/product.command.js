@@ -243,4 +243,231 @@ export class ProductCommandService {
     }
     return { message: 'Product deleted successfully' };
   };
+
+  createVariant = async (req, productId, body) => {
+    const product = await this.productRepository.findByIdDetailed(req, productId);
+    if (!product) {
+      throw new HttpError(404, 'NOT_FOUND', 'Product not found');
+    }
+
+    const sku = body?.sku ? String(body.sku).trim() : '';
+    if (!sku) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'variant sku is required');
+    }
+    const name = body?.name ? String(body.name).trim() : '';
+    if (!name) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'variant name is required');
+    }
+
+    const existing = await this.productRepository.findVariantBySku(sku);
+    if (existing) {
+      throw new HttpError(
+        409,
+        'PRODUCT_VARIANT_SKU_EXISTS',
+        `Variant SKU already exists: ${sku}`,
+      );
+    }
+
+    const variant = await models.ProductVariant.create({
+      productId,
+      name,
+      sku,
+      unitValue:
+        body?.unitValue !== undefined && body?.unitValue !== null
+          ? Number(body.unitValue)
+          : 1,
+      sellingPrice:
+        body?.sellingPrice !== undefined && body?.sellingPrice !== null
+          ? Number(body.sellingPrice)
+          : 0,
+      isActive:
+        body?.isActive !== undefined && body?.isActive !== null
+          ? Boolean(body.isActive)
+          : true,
+    });
+
+    const attrs = Array.isArray(body?.attributes) ? body.attributes : [];
+    for (const rawAttr of attrs) {
+      const key = rawAttr?.key ? String(rawAttr.key).trim() : '';
+      const value = rawAttr?.value ? String(rawAttr.value).trim() : '';
+      if (!key || !value) continue;
+      await models.ProductVariantAttribute.create({
+        variantId: variant.id,
+        key,
+        value,
+      });
+    }
+
+    return models.ProductVariant.findByPk(variant.id, {
+      include: [
+        {
+          model: models.ProductVariantAttribute,
+          as: 'attributes',
+          attributes: ['id', 'variantId', 'key', 'value'],
+        },
+      ],
+    });
+  };
+
+  updateVariant = async (req, productId, variantId, body) => {
+    const variant = await models.ProductVariant.findOne({
+      where: { id: variantId, productId },
+    });
+    if (!variant) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant not found');
+    }
+
+    if (body?.name !== undefined) {
+      const name = String(body.name || '').trim();
+      if (!name) {
+        throw new HttpError(400, 'VALIDATION_ERROR', 'variant name is required');
+      }
+      variant.name = name;
+    }
+
+    if (body?.sku !== undefined) {
+      const sku = String(body.sku || '').trim();
+      if (!sku) {
+        throw new HttpError(400, 'VALIDATION_ERROR', 'variant sku is required');
+      }
+      const existing = await this.productRepository.findVariantBySku(sku);
+      if (existing && existing.id !== variantId) {
+        throw new HttpError(
+          409,
+          'PRODUCT_VARIANT_SKU_EXISTS',
+          `Variant SKU already exists: ${sku}`,
+        );
+      }
+      variant.sku = sku;
+    }
+
+    if (body?.unitValue !== undefined) {
+      variant.unitValue = Number(body.unitValue);
+    }
+    if (body?.sellingPrice !== undefined) {
+      variant.sellingPrice = Number(body.sellingPrice);
+    }
+    if (body?.isActive !== undefined) {
+      variant.isActive = Boolean(body.isActive);
+    }
+
+    await variant.save();
+
+    if (Array.isArray(body?.attributes)) {
+      await models.ProductVariantAttribute.destroy({ where: { variantId } });
+      for (const rawAttr of body.attributes) {
+        const key = rawAttr?.key ? String(rawAttr.key).trim() : '';
+        const value = rawAttr?.value ? String(rawAttr.value).trim() : '';
+        if (!key || !value) continue;
+        await models.ProductVariantAttribute.create({
+          variantId,
+          key,
+          value,
+        });
+      }
+    }
+
+    return models.ProductVariant.findByPk(variantId, {
+      include: [
+        {
+          model: models.ProductVariantAttribute,
+          as: 'attributes',
+          attributes: ['id', 'variantId', 'key', 'value'],
+        },
+      ],
+    });
+  };
+
+  deleteVariant = async (_req, productId, variantId) => {
+    const variant = await models.ProductVariant.findOne({
+      where: { id: variantId, productId },
+    });
+    if (!variant) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant not found');
+    }
+    await models.ProductVariantAttribute.destroy({ where: { variantId } });
+    await variant.destroy();
+    return { message: 'Variant deleted successfully' };
+  };
+
+  createVariantAttribute = async (_req, productId, variantId, body) => {
+    const variant = await models.ProductVariant.findOne({
+      where: { id: variantId, productId },
+    });
+    if (!variant) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant not found');
+    }
+    const key = body?.key ? String(body.key).trim() : '';
+    const value = body?.value ? String(body.value).trim() : '';
+    if (!key || !value) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'attribute key and value are required',
+      );
+    }
+    return models.ProductVariantAttribute.create({
+      variantId,
+      key,
+      value,
+    });
+  };
+
+  updateVariantAttribute = async (
+    _req,
+    productId,
+    variantId,
+    attributeId,
+    body,
+  ) => {
+    const variant = await models.ProductVariant.findOne({
+      where: { id: variantId, productId },
+    });
+    if (!variant) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant not found');
+    }
+    const attr = await models.ProductVariantAttribute.findOne({
+      where: { id: attributeId, variantId },
+    });
+    if (!attr) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant attribute not found');
+    }
+    if (body?.key !== undefined) {
+      const key = String(body.key || '').trim();
+      if (!key) {
+        throw new HttpError(400, 'VALIDATION_ERROR', 'attribute key is required');
+      }
+      attr.key = key;
+    }
+    if (body?.value !== undefined) {
+      const value = String(body.value || '').trim();
+      if (!value) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'attribute value is required',
+        );
+      }
+      attr.value = value;
+    }
+    await attr.save();
+    return attr;
+  };
+
+  deleteVariantAttribute = async (_req, productId, variantId, attributeId) => {
+    const variant = await models.ProductVariant.findOne({
+      where: { id: variantId, productId },
+    });
+    if (!variant) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant not found');
+    }
+    const attr = await models.ProductVariantAttribute.findOne({
+      where: { id: attributeId, variantId },
+    });
+    if (!attr) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant attribute not found');
+    }
+    await attr.destroy();
+    return { message: 'Variant attribute deleted successfully' };
+  };
 }
