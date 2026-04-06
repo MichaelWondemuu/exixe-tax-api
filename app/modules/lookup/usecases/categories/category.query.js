@@ -11,8 +11,7 @@ export class CategoryQueryService {
   }
 
   listCategories = async () => {
-    const list = await this.categoryRepository.findAllListed();
-    return { data: list };
+    return this.categoryRepository.findAllListed();
   };
 
   getCategoryById = async (id) => {
@@ -20,6 +19,6 @@ export class CategoryQueryService {
     if (!row) {
       throw new HttpError(404, 'NOT_FOUND', 'Category not found');
     }
-    return { data: row };
+    return row;
   };
 }

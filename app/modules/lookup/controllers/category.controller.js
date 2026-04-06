@@ -1,3 +1,5 @@
+import { formatResponse } from '../../../shared/utils/response-formatter.js';
+
 export class CategoryController {
   constructor({ categoryQueryService, categoryCommandService }) {
     this.categoryQueryService = categoryQueryService;
@@ -7,7 +9,7 @@ export class CategoryController {
   listCategories = async (req, res, next) => {
     try {
       const result = await this.categoryQueryService.listCategories();
-      res.json(result);
+      res.json(formatResponse(result));
     } catch (error) {
       next(error);
     }
@@ -18,7 +20,7 @@ export class CategoryController {
       const result = await this.categoryQueryService.getCategoryById(
         req.params.id,
       );
-      res.json(result);
+      res.json(formatResponse(result));
     } catch (error) {
       next(error);
     }
@@ -29,7 +31,7 @@ export class CategoryController {
       const result = await this.categoryCommandService.createCategory(
         req.body || {},
       );
-      res.status(201).json(result);
+      res.status(201).json(formatResponse(result, 201));
     } catch (error) {
       next(error);
     }
@@ -42,7 +44,7 @@ export class CategoryController {
         req.params.id,
         req.body || {},
       );
-      res.json(result);
+      res.json(formatResponse(result));
     } catch (error) {
       next(error);
     }
@@ -54,7 +56,7 @@ export class CategoryController {
         req,
         req.params.id,
       );
-      res.json(result);
+      res.json(formatResponse(result));
     } catch (error) {
       next(error);
     }

@@ -25,8 +25,7 @@ export class CategoryCommandService {
       );
     }
 
-    const row = await this.categoryRepository.create(null, { name });
-    return { data: row };
+    return this.categoryRepository.create(null, { name });
   };
 
   updateCategory = async (req, id, body) => {
@@ -53,7 +52,7 @@ export class CategoryCommandService {
     if (!updated) {
       throw new HttpError(404, 'NOT_FOUND', 'Category not found');
     }
-    return { data: updated };
+    return updated;
   };
 
   deleteCategory = async (req, id) => {
