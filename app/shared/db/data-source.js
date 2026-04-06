@@ -31,6 +31,7 @@ import { BusinessType } from '../../modules/lookup/persistences/business-type.mo
 import { Category } from '../../modules/lookup/persistences/category.model.js';
 import { ProductType } from '../../modules/lookup/persistences/product-type.model.js';
 import { Measurement } from '../../modules/lookup/persistences/measurement.model.js';
+import { Product } from '../../modules/product/persistences/product.model.js';
 import { OrgRegistrationApplication } from '../../modules/registration/persistences/org-registration-application.model.js';
 
 // Initialize all models
@@ -60,6 +61,7 @@ export const BusinessTypeModel = BusinessType(sequelize);
 export const CategoryModel = Category(sequelize);
 export const ProductTypeModel = ProductType(sequelize);
 export const MeasurementModel = Measurement(sequelize);
+export const ProductModel = Product(sequelize);
 export const OrgRegistrationApplicationModel =
   OrgRegistrationApplication(sequelize);
 
@@ -88,6 +90,7 @@ export const models = {
   Category: CategoryModel,
   ProductType: ProductTypeModel,
   Measurement: MeasurementModel,
+  Product: ProductModel,
   OrgRegistrationApplication: OrgRegistrationApplicationModel,
 };
 
