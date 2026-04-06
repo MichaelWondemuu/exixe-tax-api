@@ -5,12 +5,9 @@ const PRODUCT_ATTRIBUTES = [
   'id',
   'name',
   'description',
-  'sku',
   'categoryId',
   'productTypeId',
   'measurementId',
-  'unitValue',
-  'sellingPrice',
   'isActive',
   'imageUrl',
   'createdAt',
@@ -21,6 +18,26 @@ const PRODUCT_INCLUDES = [
   { model: models.Category, as: 'category', attributes: ['id', 'name'] },
   { model: models.ProductType, as: 'productType', attributes: ['id', 'name'] },
   { model: models.Measurement, as: 'measurement', attributes: ['id', 'name', 'shortForm'] },
+  {
+    model: models.ProductVariant,
+    as: 'variants',
+    attributes: [
+      'id',
+      'productId',
+      'name',
+      'sku',
+      'unitValue',
+      'sellingPrice',
+      'isActive',
+    ],
+    include: [
+      {
+        model: models.ProductVariantAttribute,
+        as: 'attributes',
+        attributes: ['id', 'variantId', 'key', 'value'],
+      },
+    ],
+  },
 ];
 
 export class ProductRepository extends BaseRepository {
@@ -28,8 +45,8 @@ export class ProductRepository extends BaseRepository {
     super({ Model: models.Product });
   }
 
-  findBySku(sku) {
-    return this.Model.findOne({ where: { sku } });
+  findVariantBySku(sku) {
+    return models.ProductVariant.findOne({ where: { sku } });
   }
 
   findAllDetailed(req, queryParams = {}) {
