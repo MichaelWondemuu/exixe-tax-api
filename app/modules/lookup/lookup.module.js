@@ -1,0 +1,89 @@
+import { createAsyncRouter } from '../../shared/middleware/exception.handler.js';
+import { RegionRepository } from './repository/region.repository.js';
+import { ZoneRepository } from './repository/zone.repository.js';
+import { WoredaRepository } from './repository/woreda.repository.js';
+import { SectorRepository } from './repository/sector.repository.js';
+import { VerificationBodyRepository } from './repository/verification-body.repository.js';
+import { LicensingAuthorityRepository } from './repository/licensing-authority.repository.js';
+import { CitiesService } from './usecases/cities/cities.service.js';
+import { CitiesCommandService } from './usecases/cities/cities.command.js';
+import { CitiesQueryService } from './usecases/cities/cities.query.js';
+import { SectorService } from './usecases/sectors/sector.service.js';
+import { SectorCommandService } from './usecases/sectors/sector.command.js';
+import { SectorQueryService } from './usecases/sectors/sector.query.js';
+import { VerificationBodyQueryService } from './usecases/verification-bodies/verification-body.query.js';
+import { LicensingAuthorityQueryService } from './usecases/licensing-authorities/licensing-authority.query.js';
+import { CitiesController } from './controllers/cities.controller.js';
+import { SectorController } from './controllers/sector.controller.js';
+import { VerificationBodyController } from './controllers/verification-body.controller.js';
+import { LicensingAuthorityController } from './controllers/licensing-authority.controller.js';
+import { buildCitiesRouter } from './routes/cities.routes.js';
+import { buildSectorRouter } from './routes/sector.routes.js';
+import { buildVerificationBodyRouter } from './routes/verification-body.routes.js';
+import { buildLicensingAuthorityRouter } from './routes/licensing-authority.routes.js';
+
+export const createLookupModule = () => {
+  const regionRepository = new RegionRepository();
+  const zoneRepository = new ZoneRepository();
+  const woredaRepository = new WoredaRepository();
+  const sectorRepository = new SectorRepository();
+  const verificationBodyRepository = new VerificationBodyRepository();
+  const licensingAuthorityRepository = new LicensingAuthorityRepository();
+
+  const citiesService = new CitiesService({
+    regionRepository,
+    zoneRepository,
+    woredaRepository,
+  });
+  const citiesCommandService = new CitiesCommandService({ citiesService });
+  const citiesQueryService = new CitiesQueryService({ citiesService });
+
+  const sectorService = new SectorService({
+    sectorRepository,
+    verificationBodyRepository,
+    licensingAuthorityRepository,
+  });
+  const sectorCommandService = new SectorCommandService({ sectorService });
+  const sectorQueryService = new SectorQueryService({ sectorService });
+
+  const verificationBodyQueryService = new VerificationBodyQueryService({
+    verificationBodyRepository,
+  });
+  const licensingAuthorityQueryService = new LicensingAuthorityQueryService({
+    licensingAuthorityRepository,
+  });
+
+  const citiesController = new CitiesController({
+    citiesQueryService,
+    citiesCommandService,
+  });
+  const sectorController = new SectorController({
+    sectorQueryService,
+    sectorCommandService,
+  });
+  const verificationBodyController = new VerificationBodyController({
+    verificationBodyQueryService,
+  });
+  const licensingAuthorityController = new LicensingAuthorityController({
+    licensingAuthorityQueryService,
+  });
+
+  const router = createAsyncRouter();
+  router.use(
+    '/cities',
+    buildCitiesRouter({ citiesController }),
+  );
+  router.use('/sectors', buildSectorRouter({ sectorController }));
+  router.use(
+    '/verification-bodies',
+    buildVerificationBodyRouter({ verificationBodyController }),
+  );
+  router.use(
+    '/licensing-authorities',
+    buildLicensingAuthorityRouter({ licensingAuthorityController }),
+  );
+
+  return Object.freeze({
+    router,
+  });
+};
