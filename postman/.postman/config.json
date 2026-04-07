@@ -1,0 +1,15 @@
+{
+  "workspace": {
+    "id": "e9e5675f-ed26-4905-b384-9dd9cfb8a929"
+  },
+  "entities": {
+    "environments": [],
+    "flows": [],
+    "globals": [],
+    "mocks": [],
+    "specs": [],
+    "collections": [
+      "..\\excise-directive-1004.postman_collection.json"
+    ]
+  }
+}

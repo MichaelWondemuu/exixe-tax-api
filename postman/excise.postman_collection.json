@@ -1,0 +1,465 @@
+{
+  "info": {
+    "name": "Excise Directive 1004/2024 API",
+    "_postman_id": "a9a1c6b8-2d45-4c2d-9c02-6bb7fdbe1004",
+    "description": "End-to-end collection for Excise Directive 1004/2024 flows: facilities, delivery notes, stamp requests, forecasts, stock events, and verification.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/v1" },
+    { "key": "authToken", "value": "" },
+    { "key": "systemAuthToken", "value": "" },
+    { "key": "facilityId", "value": "" },
+    { "key": "toFacilityId", "value": "" },
+    { "key": "deliveryNoteId", "value": "" },
+    { "key": "stampRequestId", "value": "" },
+    { "key": "forecastId", "value": "" },
+    { "key": "stockEventId", "value": "" },
+    { "key": "verificationId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Create Public Stamp Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/public/stamp-verifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "public", "stamp-verifications"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actorType\": \"PUBLIC\",\n  \"channel\": \"MOBILE_APP\",\n  \"result\": \"AUTHENTIC\",\n  \"stampIdentifier\": \"UI-TEST-0001\",\n  \"productDescription\": \"Sample beverage\",\n  \"verificationEvidence\": {\n    \"deviceId\": \"android-01\",\n    \"geo\": \"Addis Ababa\"\n  },\n  \"remarks\": \"Public verification\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authenticated Operators",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{authToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Facilities",
+          "item": [
+            {
+              "name": "Create Source Facility",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const id = j?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('facilityId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/facilities",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "facilities"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Main Factory\",\n  \"facilityType\": \"FACTORY\",\n  \"licenseNumber\": \"LIC-001\",\n  \"region\": \"Addis Ababa\",\n  \"city\": \"Addis Ababa\",\n  \"addressLine1\": \"Bole Road\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Target Facility",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const id = j?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('toFacilityId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/facilities",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "facilities"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Central Warehouse\",\n  \"facilityType\": \"WAREHOUSE\",\n  \"licenseNumber\": \"LIC-002\",\n  \"region\": \"Addis Ababa\",\n  \"city\": \"Addis Ababa\",\n  \"addressLine1\": \"CMC Road\"\n}"
+                }
+              }
+            },
+            {
+              "name": "List Facilities",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/facilities",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "facilities"]
+                }
+              }
+            },
+            {
+              "name": "Get Facility By Id",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/facilities/{{facilityId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "facilities", "{{facilityId}}"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delivery Notes",
+          "item": [
+            {
+              "name": "Create Delivery Note",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const id = j?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('deliveryNoteId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/delivery-notes",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "delivery-notes"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fromFacilityId\": \"{{facilityId}}\",\n  \"toFacilityId\": \"{{toFacilityId}}\",\n  \"shipmentRoute\": \"Factory -> Warehouse\",\n  \"transporterName\": \"Cheche Logistics\",\n  \"vehiclePlateNo\": \"AA-12345\",\n  \"expectedDispatchAt\": \"2026-07-01T09:00:00.000Z\",\n  \"expectedArrivalAt\": \"2026-07-01T12:00:00.000Z\",\n  \"items\": [\n    {\n      \"productDescription\": \"Sweetened beverage 500ml\",\n      \"quantity\": 1200,\n      \"unit\": \"bottle\"\n    }\n  ],\n  \"remarks\": \"Batch transfer\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Delivery Note",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/delivery-notes/{{deliveryNoteId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "delivery-notes", "{{deliveryNoteId}}", "status"]
+                },
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"SUBMITTED\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stamp Requests",
+          "item": [
+            {
+              "name": "Create Stamp Request",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const id = j?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('stampRequestId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-requests",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-requests"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"facilityId\": \"{{facilityId}}\",\n  \"goodsCategory\": \"NON_ALCOHOLIC_SSB\",\n  \"goodsDescription\": \"Sweetened carbonated beverages\",\n  \"quantity\": 50000,\n  \"requiredByDate\": \"2026-09-15T00:00:00.000Z\",\n  \"plannedProductionOrImportDate\": \"2026-10-01T00:00:00.000Z\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Add Stamp Request Payment",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-requests/{{stampRequestId}}/payment",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-requests", "{{stampRequestId}}", "payment"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stampFeeAmount\": 15000,\n  \"stampFeeCurrency\": \"ETB\",\n  \"paymentReference\": \"PAY-EXC-1004-01\",\n  \"paymentProofUrl\": \"https://example.com/proof.pdf\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Stamp Request",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-requests/{{stampRequestId}}/submit",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-requests", "{{stampRequestId}}", "submit"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forecasts",
+          "item": [
+            {
+              "name": "Create 6-Month Forecast",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const id = j?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('forecastId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/forecasts",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "forecasts"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"facilityId\": \"{{facilityId}}\",\n  \"goodsCategory\": \"NON_ALCOHOLIC_SSB\",\n  \"monthlyPlan\": [\n    { \"month\": \"2026-10\", \"quantity\": 12000 },\n    { \"month\": \"2026-11\", \"quantity\": 12500 },\n    { \"month\": \"2026-12\", \"quantity\": 13000 },\n    { \"month\": \"2027-01\", \"quantity\": 12800 },\n    { \"month\": \"2027-02\", \"quantity\": 12700 },\n    { \"month\": \"2027-03\", \"quantity\": 13200 }\n  ]\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Forecast",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/forecasts/{{forecastId}}/submit",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "forecasts", "{{forecastId}}", "submit"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stamp Stock Events (Return/Wastage/Transfer)",
+          "item": [
+            {
+              "name": "Create Transfer Event",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const id = j?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('stockEventId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-stock-events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-stock-events"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"eventType\": \"TRANSFER\",\n  \"sourceFacilityId\": \"{{facilityId}}\",\n  \"targetFacilityId\": \"{{toFacilityId}}\",\n  \"reasonCode\": \"INTERNAL_REALLOCATION\",\n  \"quantity\": 2500,\n  \"notes\": \"Move stamps for next shift\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Stock Event",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-stock-events/{{stockEventId}}/submit",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-stock-events", "{{stockEventId}}", "submit"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Operator Stamp Verification",
+          "item": [
+            {
+              "name": "Create Operator Verification",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const j = pm.response.json();",
+                      "const id = j?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('verificationId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-verifications",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-verifications"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"actorType\": \"DISTRIBUTOR\",\n  \"facilityId\": \"{{toFacilityId}}\",\n  \"channel\": \"WEB_PORTAL\",\n  \"result\": \"AUTHENTIC\",\n  \"stampIdentifier\": \"UI-TEST-0001\",\n  \"productDescription\": \"Sweetened beverage\",\n  \"supplierName\": \"Main Factory\",\n  \"supplierDocumentType\": \"DELIVERY_NOTE\",\n  \"supplierDocumentNumber\": \"DN-PLACEHOLDER\",\n  \"verificationEvidence\": {\n    \"scanner\": \"ZX-01\",\n    \"location\": \"Warehouse Gate\"\n  }\n}"
+                }
+              }
+            },
+            {
+              "name": "List Verifications",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-verifications",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-verifications"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin (System User)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{systemAuthToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Review Stamp Request (Approve)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-requests/{{stampRequestId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-requests", "{{stampRequestId}}", "review"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"APPROVED\"\n}" }
+          }
+        },
+        {
+          "name": "Review Stock Event (Approve)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-stock-events/{{stockEventId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-stock-events", "{{stockEventId}}", "review"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"APPROVED\"\n}" }
+          }
+        },
+        {
+          "name": "List SLA Breaches",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-requests/sla-breaches",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-requests", "sla-breaches"]
+            }
+          }
+        },
+        {
+          "name": "Verification Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-verifications/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-verifications", "summary"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

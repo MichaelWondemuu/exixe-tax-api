@@ -77,9 +77,7 @@ const bootstrap = async () => {
   const allowedOrigins =
     env.nodeEnv === 'production'
       ? ['https://invoice.cheche.et']
-      : [
-          '*',
-        ];
+      : ['http://localhost:3000', 'http://localhost:5000'];
 
   // Configure CORS with explicit origin allowlist (especially important with credentials=true)
   app.use(
