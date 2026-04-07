@@ -223,18 +223,15 @@ export class OrgRegistrationService {
    * @returns {Promise<{ application: import('sequelize').Model; warnings: object[] }>}
    */
   async submitApplication(_req, body) {
+    const tin = body.tin ?? body.tinNumber;
     await ensureRegistrationApplicationSchema();
     await ensureDefaultBusinessTypes();
     const legalName = pickLegalName(body);
     if (!legalName) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'legal_name is required');
     }
-    if (tinNumber && tinNumber.length > 64) {
-      throw new HttpError(
-        400,
-        'VALIDATION_ERROR',
-        'tin_number must be at most 64 characters',
-      );
+    if (tin && tin.length !== 10) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'tin must be 10 digits');
     }
 
     let businessTypeId =

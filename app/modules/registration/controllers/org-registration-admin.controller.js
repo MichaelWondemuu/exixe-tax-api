@@ -54,4 +54,18 @@ export class OrgRegistrationAdminController {
     );
     res.json({ data: row });
   };
+
+  markUnderReview = async (req, res) => {
+    const { id } = req.params;
+    const body = req.body || {};
+    const row = await this.orgRegistrationCommandService.updateApplicationStatus(
+      req,
+      id,
+      {
+        status: 'UNDER_REVIEW',
+        review_note: body.review_note,
+      },
+    );
+    res.json({ data: row });
+  };
 }

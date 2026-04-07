@@ -42,13 +42,13 @@ const bootstrap = async () => {
     if (env.nodeEnv === 'development') {
       try {
         logger.info('Development mode: Syncing database...');
-        await syncDatabase({
-          force: true,
-          alter: {
-            drop: true,
-          },
-        });
-        
+        // await syncDatabase({
+        //   force: true,
+        //   alter: {
+        //     drop: true,
+        //   },
+        // });
+
         logger.info('Database synced successfully');
       } catch (err) {
         logger.error('Failed to sync database', {
@@ -75,14 +75,16 @@ const bootstrap = async () => {
   );
   console.log('DEBUG: env.nodeEnv:', env.nodeEnv);
   const allowedOrigins =
-    env.nodeEnv === 'production'
-      ? ['https://invoice.cheche.et']
-      : ['http://localhost:3000', 'http://localhost:5000'];
+    env.nodeEnv === 'production' ? ['https://invoice.cheche.et'] : null;
 
   // Configure CORS with explicit origin allowlist (especially important with credentials=true)
   app.use(
     cors({
       origin: (origin, callback) => {
+        if (env.nodeEnv !== 'production') {
+          return callback(null, true);
+        }
+
         // Allow non-browser requests (no Origin header), e.g. curl/postman/server-to-server.
         if (!origin) {
           return callback(null, true);

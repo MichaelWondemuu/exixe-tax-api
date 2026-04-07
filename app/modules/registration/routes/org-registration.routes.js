@@ -50,6 +50,11 @@ export const buildOrgRegistrationAdminRouter = ({ adminController }) => {
     '/applications/:id/status',
     ignoreOrganizationFilter(adminController.updateStatus),
   );
+  // Backward-compatible shortcut for existing clients.
+  router.post(
+    '/applications/:id/under-review',
+    ignoreOrganizationFilter(adminController.markUnderReview),
+  );
 
   return router;
 };
