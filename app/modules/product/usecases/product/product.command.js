@@ -38,6 +38,7 @@ export class ProductCommandService {
   /**
    * @param {{
    *  productRepository: import('../../repository/product.repository.js').ProductRepository;
+   *  organizationProductRepository: import('../../repository/organization-product.repository.js').OrganizationProductRepository;
    *  categoryRepository: import('../../../lookup/repository/category.repository.js').CategoryRepository;
    *  productTypeRepository: import('../../../lookup/repository/product-type.repository.js').ProductTypeRepository;
    *  measurementRepository: import('../../../lookup/repository/measurement.repository.js').MeasurementRepository;
@@ -45,14 +46,29 @@ export class ProductCommandService {
    */
   constructor({
     productRepository,
+    organizationProductRepository,
     categoryRepository,
     productTypeRepository,
     measurementRepository,
   }) {
     this.productRepository = productRepository;
+    this.organizationProductRepository = organizationProductRepository;
     this.categoryRepository = categoryRepository;
     this.productTypeRepository = productTypeRepository;
     this.measurementRepository = measurementRepository;
+  }
+
+  getOrganizationId(req) {
+    const organizationId =
+      req.organizationId || req['organizationId'] || req.user?.organization?.id;
+    if (!organizationId) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'organization context is required',
+      );
+    }
+    return organizationId;
   }
 
   async validateReferences(payload) {
@@ -469,5 +485,321 @@ export class ProductCommandService {
     }
     await attr.destroy();
     return { message: 'Variant attribute deleted successfully' };
+  };
+
+  upsertOrganizationProductOverride = async (req, productId, body) => {
+    const organizationId = this.getOrganizationId(req);
+    const product = await this.productRepository.findByIdDetailed(req, productId);
+    if (!product) {
+      throw new HttpError(404, 'NOT_FOUND', 'Product not found');
+    }
+
+    const payload = {
+      name: body?.name !== undefined ? String(body.name || '').trim() || null : undefined,
+      description:
+        body?.description !== undefined
+          ? String(body.description || '').trim() || null
+          : undefined,
+      imageUrl:
+        body?.imageUrl !== undefined
+          ? String(body.imageUrl || '').trim() || null
+          : undefined,
+      isActive: body?.isActive !== undefined ? Boolean(body.isActive) : undefined,
+    };
+    const clean = Object.fromEntries(
+      Object.entries(payload).filter(([, v]) => v !== undefined),
+    );
+    if (Object.keys(clean).length === 0) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'At least one override field is required',
+      );
+    }
+
+    const existing = await this.organizationProductRepository.findOverride(
+      organizationId,
+      productId,
+    );
+    if (existing) {
+      await existing.update(clean);
+      return existing;
+    }
+    return this.organizationProductRepository.getModel().create({
+      organizationId,
+      productId,
+      ...clean,
+    });
+  };
+
+  createOrganizationCustomProduct = async (req, body) => {
+    const organizationId = this.getOrganizationId(req);
+    const name = body?.name ? String(body.name).trim() : '';
+    if (!name) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'name is required');
+    }
+    return this.organizationProductRepository.getModel().create({
+      organizationId,
+      productId: null,
+      name,
+      description:
+        body?.description !== undefined
+          ? String(body.description || '').trim() || null
+          : null,
+      imageUrl:
+        body?.imageUrl !== undefined
+          ? String(body.imageUrl || '').trim() || null
+          : null,
+      isActive: body?.isActive !== undefined ? Boolean(body.isActive) : true,
+    });
+  };
+
+  updateOrganizationProduct = async (req, orgProductId, body) => {
+    const organizationId = this.getOrganizationId(req);
+    const row = await this.organizationProductRepository.getModel().findOne({
+      where: { id: orgProductId, organizationId },
+    });
+    if (!row) {
+      throw new HttpError(404, 'NOT_FOUND', 'Organization product not found');
+    }
+    const payload = {};
+    if (body?.name !== undefined) {
+      payload.name = String(body.name || '').trim() || null;
+    }
+    if (body?.description !== undefined) {
+      payload.description = String(body.description || '').trim() || null;
+    }
+    if (body?.imageUrl !== undefined) {
+      payload.imageUrl = String(body.imageUrl || '').trim() || null;
+    }
+    if (body?.isActive !== undefined) {
+      payload.isActive = Boolean(body.isActive);
+    }
+    if (Object.keys(payload).length === 0) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'At least one field is required',
+      );
+    }
+    await row.update(payload);
+    return row;
+  };
+
+  deleteOrganizationProduct = async (req, orgProductId) => {
+    const organizationId = this.getOrganizationId(req);
+    const row = await this.organizationProductRepository.getModel().findOne({
+      where: { id: orgProductId, organizationId },
+    });
+    if (!row) {
+      throw new HttpError(404, 'NOT_FOUND', 'Organization product not found');
+    }
+    await row.destroy();
+    return { message: 'Organization product removed successfully' };
+  };
+
+  createOrganizationProductVariant = async (req, orgProductId, body) => {
+    const organizationId = this.getOrganizationId(req);
+    const orgProduct = await this.organizationProductRepository.getModel().findOne({
+      where: { id: orgProductId, organizationId },
+    });
+    if (!orgProduct) {
+      throw new HttpError(404, 'NOT_FOUND', 'Organization product not found');
+    }
+    const row = await models.OrganizationProductVariant.create({
+      organizationProductId: orgProductId,
+      productVariantId: body?.productVariantId || null,
+      name: body?.name ? String(body.name).trim() : null,
+      sku: body?.sku ? String(body.sku).trim() : null,
+      unitValue:
+        body?.unitValue !== undefined && body?.unitValue !== null
+          ? Number(body.unitValue)
+          : null,
+      sellingPrice:
+        body?.sellingPrice !== undefined && body?.sellingPrice !== null
+          ? Number(body.sellingPrice)
+          : null,
+      isActive: body?.isActive !== undefined ? Boolean(body.isActive) : null,
+    });
+    return row;
+  };
+
+  updateOrganizationProductVariant = async (req, orgProductVariantId, body) => {
+    const organizationId = this.getOrganizationId(req);
+    const row = await models.OrganizationProductVariant.findOne({
+      where: { id: orgProductVariantId },
+      include: [
+        {
+          model: models.OrganizationProduct,
+          as: 'organizationProduct',
+          where: { organizationId },
+        },
+      ],
+    });
+    if (!row) {
+      throw new HttpError(
+        404,
+        'NOT_FOUND',
+        'Organization product variant not found',
+      );
+    }
+    const payload = {};
+    if (body?.name !== undefined) payload.name = String(body.name || '').trim() || null;
+    if (body?.sku !== undefined) payload.sku = String(body.sku || '').trim() || null;
+    if (body?.unitValue !== undefined) {
+      payload.unitValue = body.unitValue == null ? null : Number(body.unitValue);
+    }
+    if (body?.sellingPrice !== undefined) {
+      payload.sellingPrice =
+        body.sellingPrice == null ? null : Number(body.sellingPrice);
+    }
+    if (body?.isActive !== undefined) payload.isActive = Boolean(body.isActive);
+    if (Object.keys(payload).length === 0) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'At least one field is required');
+    }
+    await row.update(payload);
+    return row;
+  };
+
+  deleteOrganizationProductVariant = async (req, orgProductVariantId) => {
+    const organizationId = this.getOrganizationId(req);
+    const row = await models.OrganizationProductVariant.findOne({
+      where: { id: orgProductVariantId },
+      include: [
+        {
+          model: models.OrganizationProduct,
+          as: 'organizationProduct',
+          where: { organizationId },
+        },
+      ],
+    });
+    if (!row) {
+      throw new HttpError(
+        404,
+        'NOT_FOUND',
+        'Organization product variant not found',
+      );
+    }
+    await models.OrganizationProductVariantAttribute.destroy({
+      where: { organizationProductVariantId: row.id },
+    });
+    await row.destroy();
+    return { message: 'Organization product variant removed successfully' };
+  };
+
+  createOrganizationProductVariantAttribute = async (
+    req,
+    orgProductVariantId,
+    body,
+  ) => {
+    const organizationId = this.getOrganizationId(req);
+    const variant = await models.OrganizationProductVariant.findOne({
+      where: { id: orgProductVariantId },
+      include: [
+        {
+          model: models.OrganizationProduct,
+          as: 'organizationProduct',
+          where: { organizationId },
+        },
+      ],
+    });
+    if (!variant) {
+      throw new HttpError(
+        404,
+        'NOT_FOUND',
+        'Organization product variant not found',
+      );
+    }
+    const key = body?.key ? String(body.key).trim() : '';
+    const value = body?.value ? String(body.value).trim() : '';
+    if (!key || !value) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'attribute key and value are required',
+      );
+    }
+    return models.OrganizationProductVariantAttribute.create({
+      organizationProductVariantId: orgProductVariantId,
+      key,
+      value,
+    });
+  };
+
+  updateOrganizationProductVariantAttribute = async (
+    req,
+    orgProductVariantAttributeId,
+    body,
+  ) => {
+    const organizationId = this.getOrganizationId(req);
+    const row = await models.OrganizationProductVariantAttribute.findOne({
+      where: { id: orgProductVariantAttributeId },
+      include: [
+        {
+          model: models.OrganizationProductVariant,
+          as: 'organizationProductVariant',
+          include: [
+            {
+              model: models.OrganizationProduct,
+              as: 'organizationProduct',
+              where: { organizationId },
+            },
+          ],
+        },
+      ],
+    });
+    if (!row) {
+      throw new HttpError(
+        404,
+        'NOT_FOUND',
+        'Organization product variant attribute not found',
+      );
+    }
+    if (body?.key !== undefined) {
+      const key = String(body.key || '').trim();
+      if (!key) throw new HttpError(400, 'VALIDATION_ERROR', 'key is required');
+      row.key = key;
+    }
+    if (body?.value !== undefined) {
+      const value = String(body.value || '').trim();
+      if (!value) {
+        throw new HttpError(400, 'VALIDATION_ERROR', 'value is required');
+      }
+      row.value = value;
+    }
+    await row.save();
+    return row;
+  };
+
+  deleteOrganizationProductVariantAttribute = async (
+    req,
+    orgProductVariantAttributeId,
+  ) => {
+    const organizationId = this.getOrganizationId(req);
+    const row = await models.OrganizationProductVariantAttribute.findOne({
+      where: { id: orgProductVariantAttributeId },
+      include: [
+        {
+          model: models.OrganizationProductVariant,
+          as: 'organizationProductVariant',
+          include: [
+            {
+              model: models.OrganizationProduct,
+              as: 'organizationProduct',
+              where: { organizationId },
+            },
+          ],
+        },
+      ],
+    });
+    if (!row) {
+      throw new HttpError(
+        404,
+        'NOT_FOUND',
+        'Organization product variant attribute not found',
+      );
+    }
+    await row.destroy();
+    return { message: 'Organization product variant attribute removed successfully' };
   };
 }
