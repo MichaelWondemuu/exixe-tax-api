@@ -39,7 +39,7 @@ const bootstrap = async () => {
     }
     logger.info('Database connected successfully');
 
-    if (env.nodeEnv !== 'ddevelopment') {
+    if (env.nodeEnv === 'development') {
       try {
         logger.info('Development mode: Syncing database...');
         await syncDatabase({
@@ -48,6 +48,7 @@ const bootstrap = async () => {
             drop: true,
           },
         });
+        
         logger.info('Database synced successfully');
       } catch (err) {
         logger.error('Failed to sync database', {
@@ -77,9 +78,7 @@ const bootstrap = async () => {
     env.nodeEnv === 'production'
       ? ['https://invoice.cheche.et']
       : [
-          'https://invoice.cheche.et',
-          'http://localhost:3000',
-          'http://localhost:5173',
+          '*',
         ];
 
   // Configure CORS with explicit origin allowlist (especially important with credentials=true)
@@ -217,17 +216,11 @@ const bootstrap = async () => {
     );
   }
 
-  // Serve product images from pos-api/assets at /assets/<filename> and /uploads/<filename> (for backward compatibility)
+  // Serve uploaded files from OS-level files dir.
   const { default: fsSync } = await import('fs');
-  const { fileURLToPath: toPath } = await import('url');
-  const assetsDir = path.resolve(
-    path.dirname(toPath(import.meta.url)),
-    '..',
-    'assets',
-  );
-  fsSync.mkdirSync(assetsDir, { recursive: true });
-  app.use('/assets', express.static(assetsDir));
-  app.use('/uploads', express.static(assetsDir));
+  fsSync.mkdirSync(env.filesDir, { recursive: true });
+  app.use('/assets', express.static(env.filesDir));
+  app.use('/uploads', express.static(env.filesDir));
 
   // Register all routes
   registerRoutes(app, '/v1');

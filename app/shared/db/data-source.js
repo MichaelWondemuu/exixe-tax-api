@@ -28,6 +28,12 @@ import { Sector } from '../../modules/lookup/persistences/sector.model.js';
 import { VerificationBody } from '../../modules/lookup/persistences/verification-body.model.js';
 import { LicensingAuthority } from '../../modules/lookup/persistences/licensing-authority.model.js';
 import { BusinessType } from '../../modules/lookup/persistences/business-type.model.js';
+import { Category } from '../../modules/lookup/persistences/category.model.js';
+import { ProductType } from '../../modules/lookup/persistences/product-type.model.js';
+import { Measurement } from '../../modules/lookup/persistences/measurement.model.js';
+import { Product } from '../../modules/product/persistences/product.model.js';
+import { ProductVariant } from '../../modules/product/persistences/product-variant.model.js';
+import { ProductVariantAttribute } from '../../modules/product/persistences/product-variant-attribute.model.js';
 import { OrgRegistrationApplication } from '../../modules/registration/persistences/org-registration-application.model.js';
 import { SelfRegAddress } from '../../modules/registration/persistences/self-reg/self-reg-address.model.js';
 import { SelfRegOrganization } from '../../modules/registration/persistences/self-reg/self-reg-organization.model.js';
@@ -63,6 +69,12 @@ export const VerificationBodyModel = VerificationBody(sequelize);
 export const LicensingAuthorityModel = LicensingAuthority(sequelize);
 export const SectorModel = Sector(sequelize);
 export const BusinessTypeModel = BusinessType(sequelize);
+export const CategoryModel = Category(sequelize);
+export const ProductTypeModel = ProductType(sequelize);
+export const MeasurementModel = Measurement(sequelize);
+export const ProductModel = Product(sequelize);
+export const ProductVariantModel = ProductVariant(sequelize);
+export const ProductVariantAttributeModel = ProductVariantAttribute(sequelize);
 export const OrgRegistrationApplicationModel =
   OrgRegistrationApplication(sequelize);
 export const SelfRegAddressModel = SelfRegAddress(sequelize);
@@ -99,6 +111,12 @@ export const models = {
   LicensingAuthority: LicensingAuthorityModel,
   Sector: SectorModel,
   BusinessType: BusinessTypeModel,
+  Category: CategoryModel,
+  ProductType: ProductTypeModel,
+  Measurement: MeasurementModel,
+  Product: ProductModel,
+  ProductVariant: ProductVariantModel,
+  ProductVariantAttribute: ProductVariantAttributeModel,
   OrgRegistrationApplication: OrgRegistrationApplicationModel,
   SelfRegAddress: SelfRegAddressModel,
   SelfRegOrganization: SelfRegOrganizationModel,

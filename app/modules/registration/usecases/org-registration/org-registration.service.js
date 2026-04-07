@@ -229,6 +229,13 @@ export class OrgRegistrationService {
     if (!legalName) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'legal_name is required');
     }
+    if (tinNumber && tinNumber.length > 64) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'tin_number must be at most 64 characters',
+      );
+    }
 
     let businessTypeId =
       body.business_type_id ??
