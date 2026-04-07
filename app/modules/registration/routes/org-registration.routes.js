@@ -34,6 +34,8 @@ export const buildOrgRegistrationAdminRouter = ({ adminController }) => {
   router.use(authMiddleware());
   router.use(requireSystemUser());
 
+  // Backward-compatible shortcut for existing clients calling /admin directly.
+  router.get('/', ignoreOrganizationFilter(adminController.listApplications));
   router.get(
     '/applications',
     ignoreOrganizationFilter(adminController.listApplications),
