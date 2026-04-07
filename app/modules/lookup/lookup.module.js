@@ -5,6 +5,7 @@ import { WoredaRepository } from './repository/woreda.repository.js';
 import { SectorRepository } from './repository/sector.repository.js';
 import { VerificationBodyRepository } from './repository/verification-body.repository.js';
 import { LicensingAuthorityRepository } from './repository/licensing-authority.repository.js';
+import { BusinessTypeRepository } from './repository/business-type.repository.js';
 import { CitiesService } from './usecases/cities/cities.service.js';
 import { CitiesCommandService } from './usecases/cities/cities.command.js';
 import { CitiesQueryService } from './usecases/cities/cities.query.js';
@@ -13,14 +14,17 @@ import { SectorCommandService } from './usecases/sectors/sector.command.js';
 import { SectorQueryService } from './usecases/sectors/sector.query.js';
 import { VerificationBodyQueryService } from './usecases/verification-bodies/verification-body.query.js';
 import { LicensingAuthorityQueryService } from './usecases/licensing-authorities/licensing-authority.query.js';
+import { BusinessTypeQueryService } from './usecases/business-types/business-type.query.js';
 import { CitiesController } from './controllers/cities.controller.js';
 import { SectorController } from './controllers/sector.controller.js';
 import { VerificationBodyController } from './controllers/verification-body.controller.js';
 import { LicensingAuthorityController } from './controllers/licensing-authority.controller.js';
+import { BusinessTypeController } from './controllers/business-type.controller.js';
 import { buildCitiesRouter } from './routes/cities.routes.js';
 import { buildSectorRouter } from './routes/sector.routes.js';
 import { buildVerificationBodyRouter } from './routes/verification-body.routes.js';
 import { buildLicensingAuthorityRouter } from './routes/licensing-authority.routes.js';
+import { buildBusinessTypeRouter } from './routes/business-type.routes.js';
 
 export const createLookupModule = () => {
   const regionRepository = new RegionRepository();
@@ -29,6 +33,7 @@ export const createLookupModule = () => {
   const sectorRepository = new SectorRepository();
   const verificationBodyRepository = new VerificationBodyRepository();
   const licensingAuthorityRepository = new LicensingAuthorityRepository();
+  const businessTypeRepository = new BusinessTypeRepository();
 
   const citiesService = new CitiesService({
     regionRepository,
@@ -52,6 +57,9 @@ export const createLookupModule = () => {
   const licensingAuthorityQueryService = new LicensingAuthorityQueryService({
     licensingAuthorityRepository,
   });
+  const businessTypeQueryService = new BusinessTypeQueryService({
+    businessTypeRepository,
+  });
 
   const citiesController = new CitiesController({
     citiesQueryService,
@@ -67,6 +75,9 @@ export const createLookupModule = () => {
   const licensingAuthorityController = new LicensingAuthorityController({
     licensingAuthorityQueryService,
   });
+  const businessTypeController = new BusinessTypeController({
+    businessTypeQueryService,
+  });
 
   const router = createAsyncRouter();
   router.use(
@@ -81,6 +92,10 @@ export const createLookupModule = () => {
   router.use(
     '/licensing-authorities',
     buildLicensingAuthorityRouter({ licensingAuthorityController }),
+  );
+  router.use(
+    '/business-types',
+    buildBusinessTypeRouter({ businessTypeController }),
   );
 
   return Object.freeze({

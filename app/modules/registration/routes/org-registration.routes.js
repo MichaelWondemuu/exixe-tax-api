@@ -13,6 +13,14 @@ export const buildOrgRegistrationPublicRouter = ({ publicController }) => {
     ignoreOrganizationFilter(publicController.submitApplication),
   );
   router.get(
+    '/applications/reference/:reference',
+    ignoreOrganizationFilter(publicController.getApplicationByReference),
+  );
+  router.get(
+    '/applications/status/:code',
+    ignoreOrganizationFilter(publicController.getApplicationByTrackingCode),
+  );
+  router.get(
     '/applications/:id',
     ignoreOrganizationFilter(publicController.getApplication),
   );
@@ -29,6 +37,14 @@ export const buildOrgRegistrationAdminRouter = ({ adminController }) => {
   router.get(
     '/applications',
     ignoreOrganizationFilter(adminController.listApplications),
+  );
+  router.get(
+    '/applications/:id',
+    ignoreOrganizationFilter(adminController.getApplication),
+  );
+  router.patch(
+    '/applications/:id',
+    ignoreOrganizationFilter(adminController.adjustApplication),
   );
   router.patch(
     '/applications/:id/status',

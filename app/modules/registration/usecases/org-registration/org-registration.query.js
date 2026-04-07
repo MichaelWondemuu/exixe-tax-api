@@ -15,4 +15,10 @@ export class OrgRegistrationQueryService {
 
   getApplication = (req, id) =>
     this.orgRegistrationService.getApplication(req, id);
+
+  getApplicationByReference = (req, reference) =>
+    this.orgRegistrationService.getApplicationByReference(req, reference);
+
+  getApplicationByTrackingCode = (req, code) =>
+    this.orgRegistrationService.getApplicationByTrackingCode(req, code);
 }

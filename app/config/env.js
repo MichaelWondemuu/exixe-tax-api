@@ -93,6 +93,12 @@ export const env = Object.freeze({
   keyEncryption: Object.freeze({
     secret: toString(process.env.KEY_ENCRYPTION_SECRET, null),
   }),
+  selfRegistration: Object.freeze({
+    licenseExpiryWarningDays: toInt(
+      process.env.SELF_REG_LICENSE_EXPIRY_WARNING_DAYS,
+      30,
+    ),
+  }),
   mfa: Object.freeze({
     otpLength: toInt(process.env.MFA_OTP_LENGTH, 6),
     otpExpirationMinutes: toInt(process.env.MFA_OTP_EXPIRATION_MINUTES, 10),

@@ -29,6 +29,15 @@ import { VerificationBody } from '../../modules/lookup/persistences/verification
 import { LicensingAuthority } from '../../modules/lookup/persistences/licensing-authority.model.js';
 import { BusinessType } from '../../modules/lookup/persistences/business-type.model.js';
 import { OrgRegistrationApplication } from '../../modules/registration/persistences/org-registration-application.model.js';
+import { SelfRegAddress } from '../../modules/registration/persistences/self-reg/self-reg-address.model.js';
+import { SelfRegOrganization } from '../../modules/registration/persistences/self-reg/self-reg-organization.model.js';
+import { SelfRegOrganizationAddress } from '../../modules/registration/persistences/self-reg/self-reg-organization-address.model.js';
+import { SelfRegContact } from '../../modules/registration/persistences/self-reg/self-reg-contact.model.js';
+import { SelfRegFacility } from '../../modules/registration/persistences/self-reg/self-reg-facility.model.js';
+import { SelfRegLicense } from '../../modules/registration/persistences/self-reg/self-reg-license.model.js';
+import { SelfRegAttachment } from '../../modules/registration/persistences/self-reg/self-reg-attachment.model.js';
+import { SelfRegStandard } from '../../modules/registration/persistences/self-reg/self-reg-standard.model.js';
+import { OrgRegistrationApprovalLog } from '../../modules/registration/persistences/self-reg/org-registration-approval-log.model.js';
 
 // Initialize all models
 export const TokenRevocationModel = TokenRevocation(sequelize);
@@ -56,6 +65,17 @@ export const SectorModel = Sector(sequelize);
 export const BusinessTypeModel = BusinessType(sequelize);
 export const OrgRegistrationApplicationModel =
   OrgRegistrationApplication(sequelize);
+export const SelfRegAddressModel = SelfRegAddress(sequelize);
+export const SelfRegOrganizationModel = SelfRegOrganization(sequelize);
+export const SelfRegOrganizationAddressModel =
+  SelfRegOrganizationAddress(sequelize);
+export const SelfRegContactModel = SelfRegContact(sequelize);
+export const SelfRegFacilityModel = SelfRegFacility(sequelize);
+export const SelfRegLicenseModel = SelfRegLicense(sequelize);
+export const SelfRegAttachmentModel = SelfRegAttachment(sequelize);
+export const SelfRegStandardModel = SelfRegStandard(sequelize);
+export const OrgRegistrationApprovalLogModel =
+  OrgRegistrationApprovalLog(sequelize);
 
 export const models = {
   TokenRevocation: TokenRevocationModel,
@@ -80,6 +100,15 @@ export const models = {
   Sector: SectorModel,
   BusinessType: BusinessTypeModel,
   OrgRegistrationApplication: OrgRegistrationApplicationModel,
+  SelfRegAddress: SelfRegAddressModel,
+  SelfRegOrganization: SelfRegOrganizationModel,
+  SelfRegOrganizationAddress: SelfRegOrganizationAddressModel,
+  SelfRegContact: SelfRegContactModel,
+  SelfRegFacility: SelfRegFacilityModel,
+  SelfRegLicense: SelfRegLicenseModel,
+  SelfRegAttachment: SelfRegAttachmentModel,
+  SelfRegStandard: SelfRegStandardModel,
+  OrgRegistrationApprovalLog: OrgRegistrationApprovalLogModel,
 };
 
 Object.values(models).forEach((model) => {

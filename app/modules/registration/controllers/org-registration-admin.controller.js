@@ -15,6 +15,28 @@ export class OrgRegistrationAdminController {
     res.json(formatPaginatedResponse(serviceResponse, queryParams));
   };
 
+  getApplication = async (req, res) => {
+    const { id } = req.params;
+    if (!id) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'id is required');
+    }
+    const row = await this.orgRegistrationQueryService.getApplication(req, id);
+    res.json({ data: row });
+  };
+
+  adjustApplication = async (req, res) => {
+    const { id } = req.params;
+    if (!id) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'id is required');
+    }
+    const row = await this.orgRegistrationCommandService.adjustApplication(
+      req,
+      id,
+      req.body || {},
+    );
+    res.json({ data: row });
+  };
+
   updateStatus = async (req, res) => {
     const { id } = req.params;
     const body = req.body || {};
@@ -24,7 +46,11 @@ export class OrgRegistrationAdminController {
     const row = await this.orgRegistrationCommandService.updateApplicationStatus(
       req,
       id,
-      { status: body.status, review_note: body.review_note },
+      {
+        status: body.status,
+        review_note: body.review_note,
+        rejection_reason: body.rejection_reason ?? body.rejectionReason,
+      },
     );
     res.json({ data: row });
   };

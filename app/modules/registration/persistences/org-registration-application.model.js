@@ -4,6 +4,7 @@ const STATUSES = ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'];
 
 /**
  * Self-service organization registration application (pre-account).
+ * Serves as the approval / workflow envelope (spec "ApprovalRequest").
  * Table: org_registration_applications
  */
 export const OrgRegistrationApplication = (sequelize) => {
@@ -15,6 +16,41 @@ export const OrgRegistrationApplication = (sequelize) => {
         primaryKey: true,
         defaultValue: DataTypes.UUIDV4,
       },
+      tin: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+        unique: true,
+      },
+      organizationType: {
+        type: DataTypes.STRING(32),
+        allowNull: true,
+        field: 'organization_type',
+      },
+      registrationNumber: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+        field: 'registration_number',
+      },
+      submittedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'submitted_at',
+      },
+      reviewedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'reviewed_at',
+      },
+      reviewedByUserId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'reviewed_by_user_id',
+      },
+      rejectionReason: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        field: 'rejection_reason',
+      },
       status: {
         type: DataTypes.STRING(32),
         allowNull: false,
@@ -22,6 +58,11 @@ export const OrgRegistrationApplication = (sequelize) => {
         validate: {
           isIn: [STATUSES],
         },
+      },
+      reference: {
+        type: DataTypes.STRING(48),
+        allowNull: true,
+        unique: true,
       },
       legalName: {
         type: DataTypes.STRING(255),
@@ -51,6 +92,12 @@ export const OrgRegistrationApplication = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
         field: 'review_note',
+      },
+      adjustmentHistory: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        defaultValue: [],
+        field: 'adjustment_history',
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -88,6 +135,14 @@ export const OrgRegistrationApplication = (sequelize) => {
     model.belongsTo(models.BusinessType, {
       foreignKey: 'business_type_id',
       as: 'businessType',
+    });
+    model.hasOne(models.SelfRegOrganization, {
+      foreignKey: 'application_id',
+      as: 'registrationOrganization',
+    });
+    model.hasMany(models.OrgRegistrationApprovalLog, {
+      foreignKey: 'application_id',
+      as: 'approvalLogs',
     });
   };
 

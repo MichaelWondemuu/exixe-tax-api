@@ -11,4 +11,7 @@ export class OrgRegistrationCommandService {
 
   updateApplicationStatus = (req, id, payload) =>
     this.orgRegistrationService.updateStatus(req, id, payload);
+
+  adjustApplication = (req, id, body) =>
+    this.orgRegistrationService.adjustApplication(req, id, body);
 }
