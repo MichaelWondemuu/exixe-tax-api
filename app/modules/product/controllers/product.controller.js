@@ -24,6 +24,18 @@ export class ProductController {
     }
   };
 
+  listOrganizationProducts = async (req, res, next) => {
+    try {
+      const result = await this.productQueryService.listOrganizationProducts(
+        req,
+        req.query,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getProductById = async (req, res, next) => {
     try {
       const result = await this.productQueryService.getProductById(
@@ -204,6 +216,148 @@ export class ProductController {
         req.params.variantId,
         req.params.attributeId,
       );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  upsertOrganizationProductOverride = async (req, res, next) => {
+    try {
+      const result =
+        await this.productCommandService.upsertOrganizationProductOverride(
+          req,
+          req.params.productId,
+          req.body || {},
+        );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  listOrganizationProductVariants = async (req, res, next) => {
+    try {
+      const result = await this.productQueryService.listOrganizationProductVariants(
+        req,
+        req.params.orgProductId,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createOrganizationCustomProduct = async (req, res, next) => {
+    try {
+      const result = await this.productCommandService.createOrganizationCustomProduct(
+        req,
+        req.body || {},
+      );
+      res.status(201).json(formatResponse(result, 201));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateOrganizationProduct = async (req, res, next) => {
+    try {
+      const result = await this.productCommandService.updateOrganizationProduct(
+        req,
+        req.params.orgProductId,
+        req.body || {},
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteOrganizationProduct = async (req, res, next) => {
+    try {
+      const result = await this.productCommandService.deleteOrganizationProduct(
+        req,
+        req.params.orgProductId,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createOrganizationProductVariant = async (req, res, next) => {
+    try {
+      const result = await this.productCommandService.createOrganizationProductVariant(
+        req,
+        req.params.orgProductId,
+        req.body || {},
+      );
+      res.status(201).json(formatResponse(result, 201));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateOrganizationProductVariant = async (req, res, next) => {
+    try {
+      const result = await this.productCommandService.updateOrganizationProductVariant(
+        req,
+        req.params.orgProductVariantId,
+        req.body || {},
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteOrganizationProductVariant = async (req, res, next) => {
+    try {
+      const result = await this.productCommandService.deleteOrganizationProductVariant(
+        req,
+        req.params.orgProductVariantId,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createOrganizationProductVariantAttribute = async (req, res, next) => {
+    try {
+      const result =
+        await this.productCommandService.createOrganizationProductVariantAttribute(
+          req,
+          req.params.orgProductVariantId,
+          req.body || {},
+        );
+      res.status(201).json(formatResponse(result, 201));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateOrganizationProductVariantAttribute = async (req, res, next) => {
+    try {
+      const result =
+        await this.productCommandService.updateOrganizationProductVariantAttribute(
+          req,
+          req.params.orgProductVariantAttributeId,
+          req.body || {},
+        );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteOrganizationProductVariantAttribute = async (req, res, next) => {
+    try {
+      const result =
+        await this.productCommandService.deleteOrganizationProductVariantAttribute(
+          req,
+          req.params.orgProductVariantAttributeId,
+        );
       res.json(formatResponse(result));
     } catch (error) {
       next(error);

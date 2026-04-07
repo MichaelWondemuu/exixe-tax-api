@@ -42,12 +42,12 @@ const bootstrap = async () => {
     if (env.nodeEnv === 'development') {
       try {
         logger.info('Development mode: Syncing database...');
-        // await syncDatabase({
-        //   force: true,
-        //   alter: {
-        //     drop: true,
-        //   },
-        // });
+        await syncDatabase({
+          force: true,
+          alter: {
+            drop: true,
+          },
+        });
 
         logger.info('Database synced successfully');
       } catch (err) {

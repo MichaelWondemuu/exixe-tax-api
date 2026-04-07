@@ -49,6 +49,20 @@ const attributeIdParamsSchema = yup.object({
   attributeId: yup.string().uuid().required(),
 });
 
+const productRefParamsSchema = yup.object({
+  productId: yup.string().uuid().required(),
+});
+
+const orgProductIdParamsSchema = yup.object({
+  orgProductId: yup.string().uuid().required(),
+});
+const orgProductVariantIdParamsSchema = yup.object({
+  orgProductVariantId: yup.string().uuid().required(),
+});
+const orgProductVariantAttributeIdParamsSchema = yup.object({
+  orgProductVariantAttributeId: yup.string().uuid().required(),
+});
+
 const variantBodySchema = yup.object({
   name: yup.string().trim().min(1).max(255).required(),
   sku: yup.string().trim().max(100).required(),
@@ -68,6 +82,34 @@ const variantAttributeBodySchema = yup.object({
   value: yup.string().trim().min(1).max(255).required(),
 });
 
+const orgProductOverrideBodySchema = yup.object({
+  name: yup.string().trim().max(255).nullable(),
+  description: yup.string().trim().max(2000).nullable(),
+  imageUrl: yup.string().trim().max(500).nullable(),
+  isActive: yup.boolean(),
+});
+
+const orgCustomProductBodySchema = yup.object({
+  name: yup.string().trim().min(1).max(255).required(),
+  description: yup.string().trim().max(2000).nullable(),
+  imageUrl: yup.string().trim().max(500).nullable(),
+  isActive: yup.boolean(),
+});
+
+const orgProductVariantBodySchema = yup.object({
+  productVariantId: yup.string().uuid().nullable(),
+  name: yup.string().trim().max(255).nullable(),
+  sku: yup.string().trim().max(100).nullable(),
+  unitValue: yup.number().moreThan(0).nullable(),
+  sellingPrice: yup.number().min(0).nullable(),
+  isActive: yup.boolean().nullable(),
+});
+
+const orgProductVariantAttributeBodySchema = yup.object({
+  key: yup.string().trim().min(1).max(100).required(),
+  value: yup.string().trim().min(1).max(255).required(),
+});
+
 const parseOptionalProductImage = createSingleImageUploadMiddleware({
   fieldName: 'image',
   maxFileSizeBytes: 5 * 1024 * 1024,
@@ -81,6 +123,7 @@ export const buildProductRouter = ({ productController }) => {
   router.use(authMiddleware());
 
   router.get('/variants', productController.listAllVariants);
+  router.get('/organization-products', productController.listOrganizationProducts);
   router.get('/', productController.listProducts);
   router.get(
     '/:id',
@@ -160,6 +203,68 @@ export const buildProductRouter = ({ productController }) => {
     '/:id/variants/:variantId/attributes/:attributeId',
     validateParams(attributeIdParamsSchema),
     productController.deleteVariantAttribute,
+  );
+
+  router.post(
+    '/organization-products/custom',
+    validateBody(orgCustomProductBodySchema),
+    productController.createOrganizationCustomProduct,
+  );
+  router.post(
+    '/organization-products/:productId/override',
+    validateParams(productRefParamsSchema),
+    validateBody(orgProductOverrideBodySchema),
+    productController.upsertOrganizationProductOverride,
+  );
+  router.put(
+    '/organization-products/:orgProductId',
+    validateParams(orgProductIdParamsSchema),
+    validateBody(orgProductOverrideBodySchema),
+    productController.updateOrganizationProduct,
+  );
+  router.delete(
+    '/organization-products/:orgProductId',
+    validateParams(orgProductIdParamsSchema),
+    productController.deleteOrganizationProduct,
+  );
+  router.get(
+    '/organization-products/:orgProductId/variants',
+    validateParams(orgProductIdParamsSchema),
+    productController.listOrganizationProductVariants,
+  );
+  router.post(
+    '/organization-products/:orgProductId/variants',
+    validateParams(orgProductIdParamsSchema),
+    validateBody(orgProductVariantBodySchema),
+    productController.createOrganizationProductVariant,
+  );
+  router.put(
+    '/organization-products/variants/:orgProductVariantId',
+    validateParams(orgProductVariantIdParamsSchema),
+    validateBody(orgProductVariantBodySchema),
+    productController.updateOrganizationProductVariant,
+  );
+  router.delete(
+    '/organization-products/variants/:orgProductVariantId',
+    validateParams(orgProductVariantIdParamsSchema),
+    productController.deleteOrganizationProductVariant,
+  );
+  router.post(
+    '/organization-products/variants/:orgProductVariantId/attributes',
+    validateParams(orgProductVariantIdParamsSchema),
+    validateBody(orgProductVariantAttributeBodySchema),
+    productController.createOrganizationProductVariantAttribute,
+  );
+  router.put(
+    '/organization-products/variants/attributes/:orgProductVariantAttributeId',
+    validateParams(orgProductVariantAttributeIdParamsSchema),
+    validateBody(orgProductVariantAttributeBodySchema),
+    productController.updateOrganizationProductVariantAttribute,
+  );
+  router.delete(
+    '/organization-products/variants/attributes/:orgProductVariantAttributeId',
+    validateParams(orgProductVariantAttributeIdParamsSchema),
+    productController.deleteOrganizationProductVariantAttribute,
   );
   return router;
 };

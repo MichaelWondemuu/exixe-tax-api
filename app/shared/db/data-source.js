@@ -34,6 +34,9 @@ import { Measurement } from '../../modules/lookup/persistences/measurement.model
 import { Product } from '../../modules/product/persistences/product.model.js';
 import { ProductVariant } from '../../modules/product/persistences/product-variant.model.js';
 import { ProductVariantAttribute } from '../../modules/product/persistences/product-variant-attribute.model.js';
+import { OrganizationProduct } from '../../modules/product/persistences/organization-product.model.js';
+import { OrganizationProductVariant } from '../../modules/product/persistences/organization-product-variant.model.js';
+import { OrganizationProductVariantAttribute } from '../../modules/product/persistences/organization-product-variant-attribute.model.js';
 import { ExciseFacility } from '../../modules/excise/persistences/facility.model.js';
 import { ExciseDeliveryNote } from '../../modules/excise/persistences/delivery-note.model.js';
 import { ExciseStampRequest } from '../../modules/excise/persistences/stamp-request.model.js';
@@ -81,6 +84,11 @@ export const MeasurementModel = Measurement(sequelize);
 export const ProductModel = Product(sequelize);
 export const ProductVariantModel = ProductVariant(sequelize);
 export const ProductVariantAttributeModel = ProductVariantAttribute(sequelize);
+export const OrganizationProductModel = OrganizationProduct(sequelize);
+export const OrganizationProductVariantModel =
+  OrganizationProductVariant(sequelize);
+export const OrganizationProductVariantAttributeModel =
+  OrganizationProductVariantAttribute(sequelize);
 export const ExciseFacilityModel = ExciseFacility(sequelize);
 export const ExciseDeliveryNoteModel = ExciseDeliveryNote(sequelize);
 export const ExciseStampRequestModel = ExciseStampRequest(sequelize);
@@ -129,6 +137,9 @@ export const models = {
   Product: ProductModel,
   ProductVariant: ProductVariantModel,
   ProductVariantAttribute: ProductVariantAttributeModel,
+  OrganizationProduct: OrganizationProductModel,
+  OrganizationProductVariant: OrganizationProductVariantModel,
+  OrganizationProductVariantAttribute: OrganizationProductVariantAttributeModel,
   ExciseFacility: ExciseFacilityModel,
   ExciseDeliveryNote: ExciseDeliveryNoteModel,
   ExciseStampRequest: ExciseStampRequestModel,
