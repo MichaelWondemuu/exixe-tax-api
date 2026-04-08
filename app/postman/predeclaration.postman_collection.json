@@ -1,0 +1,337 @@
+{
+  "info": {
+    "_postman_id": "1f9c5e54-5888-4b56-9a88-29f7b6d32d19",
+    "name": "Exise Tax API - Predeclaration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for predeclaration endpoints and basic lookup/product setup."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001" },
+    { "key": "apiPrefix", "value": "/v1" },
+    { "key": "token", "value": "" },
+    { "key": "organizationId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "productTypeId", "value": "" },
+    { "key": "measurementId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "variantId", "value": "" },
+    { "key": "predeclarationId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"+2519XXXXXXXX\",\n  \"pin\": \"1234\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const token = res?.data?.[0]?.accessToken || res?.data?.accessToken || res?.accessToken;",
+              "const orgId = res?.data?.[0]?.organizationId || res?.data?.organizationId || res?.organizationId;",
+              "if (token) pm.collectionVariables.set('token', token);",
+              "if (orgId) pm.collectionVariables.set('organizationId', orgId);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lookup - Create Category",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Beverages\",\n  \"code\": \"BEV\",\n  \"status\": \"active\",\n  \"color\": \"#3B82F6\",\n  \"description\": \"Drink category\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/lookup/categories",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "lookup", "categories"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const id = res?.data?.[0]?.id || res?.data?.id;",
+              "if (id) pm.collectionVariables.set('categoryId', id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lookup - Create Product Type",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Soft Drink\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/lookup/product-types",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "lookup", "product-types"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const id = res?.data?.[0]?.id || res?.data?.id;",
+              "if (id) pm.collectionVariables.set('productTypeId', id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lookup - Create Measurement",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Bottle\",\n  \"shortForm\": \"btl\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/lookup/measurements",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "lookup", "measurements"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const id = res?.data?.[0]?.id || res?.data?.id;",
+              "if (id) pm.collectionVariables.set('measurementId', id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Coca Cola\",\n  \"description\": \"Carbonated drink\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"productTypeId\": \"{{productTypeId}}\",\n  \"measurementId\": \"{{measurementId}}\",\n  \"isActive\": true,\n  \"variants\": [\n    {\n      \"name\": \"500ml\",\n      \"sku\": \"COKE-500-001\",\n      \"unitValue\": 500,\n      \"sellingPrice\": 30,\n      \"isActive\": true,\n      \"attributes\": [\n        { \"key\": \"packaging\", \"value\": \"PET\" }\n      ]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const product = res?.data?.[0] || res?.data;",
+              "if (product?.id) pm.collectionVariables.set('productId', product.id);",
+              "const variantId = product?.variants?.[0]?.id;",
+              "if (variantId) pm.collectionVariables.set('variantId', variantId);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Predeclaration - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"declarationDate\": \"2026-04-08\",\n  \"arrivalDate\": \"2026-04-10\",\n  \"remarks\": \"Initial declaration\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"productVariantId\": \"{{variantId}}\",\n      \"quantity\": 120\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const row = res?.data?.[0] || res?.data;",
+              "if (row?.id) pm.collectionVariables.set('predeclarationId', row.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Predeclaration - Update Draft",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"declarationDate\": \"2026-04-09\",\n  \"arrivalDate\": \"2026-04-11\",\n  \"remarks\": \"Updated draft\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"productVariantId\": \"{{variantId}}\",\n      \"quantity\": 150,\n      \"unitValueSnapshot\": 500,\n      \"sellingPriceSnapshot\": 30\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations/{{predeclarationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations", "{{predeclarationId}}"]
+        }
+      }
+    },
+    {
+      "name": "Predeclaration - Submit",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations/{{predeclarationId}}/submit",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations", "{{predeclarationId}}", "submit"]
+        }
+      }
+    },
+    {
+      "name": "Predeclaration - Approve",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations/{{predeclarationId}}/approve",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations", "{{predeclarationId}}", "approve"]
+        }
+      }
+    },
+    {
+      "name": "Predeclaration - Reject",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remarks\": \"Rejected due to validation findings\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations/{{predeclarationId}}/reject",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations", "{{predeclarationId}}", "reject"]
+        }
+      }
+    },
+    {
+      "name": "Predeclaration - Cancel",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remarks\": \"Cancelled by organization\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations/{{predeclarationId}}/cancel",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations", "{{predeclarationId}}", "cancel"]
+        }
+      }
+    },
+    {
+      "name": "Predeclaration - Get By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations/{{predeclarationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations", "{{predeclarationId}}"]
+        }
+      }
+    },
+    {
+      "name": "Predeclaration - List",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations?page=1&page_size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "predeclarations"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "page_size", "value": "20" }
+          ]
+        }
+      }
+    }
+  ]
+}

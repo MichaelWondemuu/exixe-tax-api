@@ -53,6 +53,8 @@ import { SelfRegLicense } from '../../modules/registration/persistences/self-reg
 import { SelfRegAttachment } from '../../modules/registration/persistences/self-reg/self-reg-attachment.model.js';
 import { SelfRegStandard } from '../../modules/registration/persistences/self-reg/self-reg-standard.model.js';
 import { OrgRegistrationApprovalLog } from '../../modules/registration/persistences/self-reg/org-registration-approval-log.model.js';
+import { Predeclaration } from '../../modules/predeclaration/persistences/predeclaration.model.js';
+import { PredeclarationItem } from '../../modules/predeclaration/persistences/predeclaration-item.model.js';
 
 // Initialize all models
 export const TokenRevocationModel = TokenRevocation(sequelize);
@@ -108,6 +110,8 @@ export const SelfRegAttachmentModel = SelfRegAttachment(sequelize);
 export const SelfRegStandardModel = SelfRegStandard(sequelize);
 export const OrgRegistrationApprovalLogModel =
   OrgRegistrationApprovalLog(sequelize);
+export const PredeclarationModel = Predeclaration(sequelize);
+export const PredeclarationItemModel = PredeclarationItem(sequelize);
 
 export const models = {
   TokenRevocation: TokenRevocationModel,
@@ -156,6 +160,8 @@ export const models = {
   SelfRegAttachment: SelfRegAttachmentModel,
   SelfRegStandard: SelfRegStandardModel,
   OrgRegistrationApprovalLog: OrgRegistrationApprovalLogModel,
+  Predeclaration: PredeclarationModel,
+  PredeclarationItem: PredeclarationItemModel,
 };
 
 Object.values(models).forEach((model) => {
