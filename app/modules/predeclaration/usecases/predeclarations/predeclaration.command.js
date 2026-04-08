@@ -9,6 +9,10 @@ function buildReferenceNo() {
   return `PD-${ts}-${rnd}`;
 }
 
+function getActorId(req) {
+  return req?.userId || req?.accountId || null;
+}
+
 export class PredeclarationCommandService {
   /**
    * @param {{
@@ -180,6 +184,7 @@ export class PredeclarationCommandService {
     await this.predeclarationRepository.update(req, id, {
       status: 'SUBMITTED',
       submittedAt: new Date(),
+      submittedBy: getActorId(req),
     });
     return this.predeclarationRepository.findByIdDetailed(req, id);
   };
@@ -199,6 +204,7 @@ export class PredeclarationCommandService {
     await this.predeclarationRepository.update(req, id, {
       status: 'APPROVED',
       approvedAt: new Date(),
+      approvedBy: getActorId(req),
     });
     return this.predeclarationRepository.findByIdDetailed(req, id);
   };
@@ -218,6 +224,7 @@ export class PredeclarationCommandService {
     await this.predeclarationRepository.update(req, id, {
       status: 'REJECTED',
       rejectedAt: new Date(),
+      rejectedBy: getActorId(req),
       remarks: body?.remarks?.trim() || current.remarks || null,
     });
     return this.predeclarationRepository.findByIdDetailed(req, id);
@@ -238,6 +245,7 @@ export class PredeclarationCommandService {
     await this.predeclarationRepository.update(req, id, {
       status: 'CANCELLED',
       cancelledAt: new Date(),
+      cancelledBy: getActorId(req),
       remarks: body?.remarks?.trim() || current.remarks || null,
     });
     return this.predeclarationRepository.findByIdDetailed(req, id);

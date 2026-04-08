@@ -47,20 +47,40 @@ export const Predeclaration = (sequelize) => {
         allowNull: true,
         field: 'submitted_at',
       },
+      submittedBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'submitted_by',
+      },
       approvedAt: {
         type: DataTypes.DATE,
         allowNull: true,
         field: 'approved_at',
+      },
+      approvedBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'approved_by',
       },
       rejectedAt: {
         type: DataTypes.DATE,
         allowNull: true,
         field: 'rejected_at',
       },
+      rejectedBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'rejected_by',
+      },
       cancelledAt: {
         type: DataTypes.DATE,
         allowNull: true,
         field: 'cancelled_at',
+      },
+      cancelledBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'cancelled_by',
       },
       createdAt: {
         type: DataTypes.DATE,
