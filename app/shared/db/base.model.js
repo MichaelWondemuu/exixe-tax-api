@@ -11,7 +11,13 @@ export const getBaseFields = () => ({
   organizationId: {
     type: DataTypes.UUID,
     field: 'organization_id',
-    // allowNull: true,
+    allowNull: false,
+    references: {
+      model: 'organizations',
+      key: 'id',
+    },
+    onUpdate: 'CASCADE',
+    onDelete: 'RESTRICT',
   },
   createdAt: {
     type: DataTypes.DATE,
