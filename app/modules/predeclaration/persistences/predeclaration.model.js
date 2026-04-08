@@ -25,6 +25,11 @@ export const Predeclaration = (sequelize) => {
         allowNull: false,
         field: 'declaration_date',
       },
+      arrivalDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        field: 'arrival_date',
+      },
       status: {
         type: DataTypes.ENUM(
           'DRAFT',

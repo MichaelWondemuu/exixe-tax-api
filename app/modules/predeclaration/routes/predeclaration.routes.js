@@ -21,6 +21,7 @@ const itemBodySchema = yup.object({
 
 const predeclarationBodySchema = yup.object({
   declarationDate: yup.string().required(),
+  arrivalDate: yup.string().required(),
   remarks: yup.string().trim().max(2000).nullable(),
   items: yup.array().of(itemBodySchema).min(1).required(),
 });

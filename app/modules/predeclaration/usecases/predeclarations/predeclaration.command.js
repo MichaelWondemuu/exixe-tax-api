@@ -13,6 +13,47 @@ function getActorId(req) {
   return req?.userId || req?.accountId || null;
 }
 
+function parseDateOnly(value, fieldName) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) {
+    throw new HttpError(
+      400,
+      'VALIDATION_ERROR',
+      `${fieldName} must be a valid date (YYYY-MM-DD)`,
+    );
+  }
+  return date;
+}
+
+function validateDates({ declarationDate, arrivalDate }) {
+  const declaration = parseDateOnly(declarationDate, 'declarationDate');
+  const arrival = parseDateOnly(arrivalDate, 'arrivalDate');
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  if (declaration > arrival) {
+    throw new HttpError(
+      400,
+      'VALIDATION_ERROR',
+      'declarationDate cannot be greater than arrivalDate',
+    );
+  }
+  if (declaration < today) {
+    throw new HttpError(
+      400,
+      'VALIDATION_ERROR',
+      'declarationDate cannot be in the past',
+    );
+  }
+  if (arrival < today) {
+    throw new HttpError(
+      400,
+      'VALIDATION_ERROR',
+      'arrivalDate cannot be in the past',
+    );
+  }
+}
+
 export class PredeclarationCommandService {
   /**
    * @param {{
@@ -92,6 +133,7 @@ export class PredeclarationCommandService {
 
   createPredeclaration = async (req, body) => {
     const declarationDate = body?.declarationDate;
+    const arrivalDate = body?.arrivalDate;
     if (!declarationDate) {
       throw new HttpError(
         400,
@@ -99,6 +141,14 @@ export class PredeclarationCommandService {
         'declarationDate is required',
       );
     }
+    if (!arrivalDate) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'arrivalDate is required',
+      );
+    }
+    validateDates({ declarationDate, arrivalDate });
     const itemModel = await this.validateItems(body?.items || []);
 
     const row = await sequelize.transaction(async (transaction) => {
@@ -107,6 +157,7 @@ export class PredeclarationCommandService {
           organizationId: req.organizationId || req['organizationId'],
           referenceNo: buildReferenceNo(),
           declarationDate,
+          arrivalDate,
           status: 'DRAFT',
           remarks: body?.remarks?.trim() || null,
         },
@@ -135,6 +186,7 @@ export class PredeclarationCommandService {
     this.ensureDraft(current);
 
     const declarationDate = body?.declarationDate;
+    const arrivalDate = body?.arrivalDate;
     if (!declarationDate) {
       throw new HttpError(
         400,
@@ -142,12 +194,21 @@ export class PredeclarationCommandService {
         'declarationDate is required',
       );
     }
+    if (!arrivalDate) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'arrivalDate is required',
+      );
+    }
+    validateDates({ declarationDate, arrivalDate });
 
     const itemModel = await this.validateItems(body?.items || []);
     await sequelize.transaction(async (transaction) => {
       await this.predeclarationRepository.getModel().update(
         {
           declarationDate,
+          arrivalDate,
           remarks: body?.remarks?.trim() || null,
         },
         { where: { id }, transaction },

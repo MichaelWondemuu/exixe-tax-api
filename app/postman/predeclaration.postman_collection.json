@@ -187,7 +187,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"declarationDate\": \"2026-04-08\",\n  \"remarks\": \"Initial declaration\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"productVariantId\": \"{{variantId}}\",\n      \"quantity\": 120\n    }\n  ]\n}"
+          "raw": "{\n  \"declarationDate\": \"2026-04-08\",\n  \"arrivalDate\": \"2026-04-10\",\n  \"remarks\": \"Initial declaration\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"productVariantId\": \"{{variantId}}\",\n      \"quantity\": 120\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations",
@@ -220,7 +220,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"declarationDate\": \"2026-04-09\",\n  \"remarks\": \"Updated draft\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"productVariantId\": \"{{variantId}}\",\n      \"quantity\": 150,\n      \"unitValueSnapshot\": 500,\n      \"sellingPriceSnapshot\": 30\n    }\n  ]\n}"
+          "raw": "{\n  \"declarationDate\": \"2026-04-09\",\n  \"arrivalDate\": \"2026-04-11\",\n  \"remarks\": \"Updated draft\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"productVariantId\": \"{{variantId}}\",\n      \"quantity\": 150,\n      \"unitValueSnapshot\": 500,\n      \"sellingPriceSnapshot\": 30\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}{{apiPrefix}}/predeclarations/{{predeclarationId}}",
