@@ -12,9 +12,8 @@ const categoryBodySchema = yup.object({
   status: yup
     .string()
     .trim()
-    .lowercase()
-    .oneOf(['active', 'inactive'])
-    .transform((v) => (v ? v.toUpperCase() : 'ACTIVE'))
+    .transform((v) => (v ? String(v).trim().toUpperCase() : 'ACTIVE'))
+    .oneOf(['ACTIVE', 'INACTIVE'])
     .default('ACTIVE'),
   color: yup.string().trim().max(30).nullable(),
   description: yup.string().trim().max(2000).nullable(),
