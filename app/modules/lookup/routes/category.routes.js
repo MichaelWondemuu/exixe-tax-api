@@ -8,6 +8,16 @@ import {
 
 const categoryBodySchema = yup.object({
   name: yup.string().trim().min(2).max(255).required(),
+  code: yup.string().trim().min(1).max(100).required(),
+  status: yup
+    .string()
+    .trim()
+    .lowercase()
+    .oneOf(['active', 'inactive'])
+    .transform((v) => (v ? v.toUpperCase() : 'ACTIVE'))
+    .default('ACTIVE'),
+  color: yup.string().trim().max(30).nullable(),
+  description: yup.string().trim().max(2000).nullable(),
 });
 
 const categoryIdParamsSchema = yup.object({

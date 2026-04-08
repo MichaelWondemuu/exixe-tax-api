@@ -8,21 +8,64 @@ export class CategoryRepository extends BaseRepository {
 
   findAllListed() {
     return this.Model.findAll({
-      attributes: ['id', 'name', 'createdAt', 'updatedAt'],
+      attributes: [
+        'id',
+        'name',
+        'code',
+        'status',
+        'color',
+        'description',
+        'createdAt',
+        'updatedAt',
+      ],
       order: [['name', 'ASC']],
     });
   }
 
   findByPkListed(id) {
     return this.Model.findByPk(id, {
-      attributes: ['id', 'name', 'createdAt', 'updatedAt'],
+      attributes: [
+        'id',
+        'name',
+        'code',
+        'status',
+        'color',
+        'description',
+        'createdAt',
+        'updatedAt',
+      ],
     });
   }
 
   findByName(name) {
     return this.Model.findOne({
       where: { name },
-      attributes: ['id', 'name', 'createdAt', 'updatedAt'],
+      attributes: [
+        'id',
+        'name',
+        'code',
+        'status',
+        'color',
+        'description',
+        'createdAt',
+        'updatedAt',
+      ],
+    });
+  }
+
+  findByCode(code) {
+    return this.Model.findOne({
+      where: { code },
+      attributes: [
+        'id',
+        'name',
+        'code',
+        'status',
+        'color',
+        'description',
+        'createdAt',
+        'updatedAt',
+      ],
     });
   }
 }
