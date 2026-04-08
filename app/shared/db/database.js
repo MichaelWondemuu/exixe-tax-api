@@ -427,10 +427,17 @@ const LOOKUP_MODEL_NAMES = [
   'Woreda',
   'Sector',
   'BusinessType',
+  'Category',
+  'ProductType',
+  'Measurement',
 ];
 
 // Sync database (only for development)
-export const syncDatabase = async () => {
+export const syncDatabase = async (options = {}) => {
+  const syncOptions = {
+    force: options?.force ?? false,
+    alter: options?.alter ?? true,
+  };
   try {
     // Ensure junction tables exist first (they're defined in associate methods)
     await ensureJunctionTables();
@@ -450,11 +457,9 @@ export const syncDatabase = async () => {
       const model = sequelize.models[name];
       if (model) {
         try {
-          await model.sync({ alter: true });
+          await model.sync(syncOptions);
         } catch (error) {
-          if (!error.message.includes('No description found')) {
-            // console.warn(`Warning: Could not sync ${name}:`, error.message);
-          }
+          console.warn(`Warning: Could not sync ${name}:`, error.message);
         }
       }
     }
@@ -470,35 +475,29 @@ export const syncDatabase = async () => {
     // Sync each model individually to avoid issues with junction tables
     for (const model of modelsToSync) {
       try {
-        await model.sync({ alter: true });
+        await model.sync(syncOptions);
       } catch (error) {
         // Log but continue with other models
-        if (!error.message.includes('No description found')) {
-          // console.warn(`Warning: Could not sync ${model.name}:`, error.message);
-        }
+        console.warn(`Warning: Could not sync ${model.name}:`, error.message);
       }
     }
 
     // Now sync junction tables separately
     if (sequelize.models.UserRole) {
       try {
-        await sequelize.models.UserRole.sync({ alter: true });
+        await sequelize.models.UserRole.sync(syncOptions);
       } catch (error) {
         // Ignore if table doesn't exist - it was already created
-        if (!error.message.includes('No description found')) {
-          // console.warn('Warning: Could not sync UserRole:', error.message);
-        }
+        console.warn('Warning: Could not sync UserRole:', error.message);
       }
     }
 
     if (sequelize.models.RoleResourcePermission) {
       try {
-        await sequelize.models.RoleResourcePermission.sync({ alter: true });
+        await sequelize.models.RoleResourcePermission.sync(syncOptions);
       } catch (error) {
         // Ignore if table doesn't exist - it was already created
-        if (!error.message.includes('No description found')) {
-          // console.warn('Warning: Could not sync RoleResourcePermission:', error.message);
-        }
+        console.warn('Warning: Could not sync RoleResourcePermission:', error.message);
       }
     }
     return true;
