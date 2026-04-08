@@ -19,6 +19,28 @@ export const Category = (sequelize) => {
         unique: true,
         field: 'name',
       },
+      code: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        unique: true,
+        field: 'code',
+      },
+      status: {
+        type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
+        allowNull: false,
+        defaultValue: 'ACTIVE',
+        field: 'status',
+      },
+      color: {
+        type: DataTypes.STRING(30),
+        allowNull: true,
+        field: 'color',
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        field: 'description',
+      },
       createdAt: {
         type: DataTypes.DATE,
         field: 'created_at',
