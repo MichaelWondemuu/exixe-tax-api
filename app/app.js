@@ -73,28 +73,42 @@ const bootstrap = async () => {
     }),
   );
   console.log('DEBUG: env.nodeEnv:', env.nodeEnv);
-  const allowedOrigins =
-    env.nodeEnv === 'production' ? ['https://invoice.cheche.et'] : null;
+  const allowedOrigins = Array.from(
+    new Set(
+      env.nodeEnv === 'production'
+        ? ['https://invoice.cheche.et', 'https://invoice-test.cheche.et']
+        : [
+            'http://localhost:3000',
+            'http://localhost:3001'
+          ],
+    ),
+  );
+
+  const corsOptions = {
+    origin: (origin, callback) => {
+      // Allow non-browser and same-origin requests (Postman/curl/server-to-server).
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS origin not allowed: ${origin}`), false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-api-key',
+      'x-user-key',
+      'x-organization-id',
+      'x-user-id',
+      'x-pin',
+    ],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  };
 
   // Configure CORS with explicit origin allowlist (especially important with credentials=true)
-  app.use(
-    cors({
-      origin: '*',
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'x-api-key',
-        'x-user-key',
-        'x-organization-id',
-        'x-user-id',
-        'x-pin',
-      ],
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
-    }),
-  );
+  app.use(cors(corsOptions));
+  app.options(/.*/, cors(corsOptions));
   app.use(
     express.json({
       limit: '10mb',
