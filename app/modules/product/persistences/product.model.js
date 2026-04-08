@@ -93,5 +93,8 @@ export const Product = (sequelize) => {
     });
   };
 
+  // Products are global catalog entries, not organization-scoped.
+  model.ignoreOrganizationFilter = true;
+
   return model;
 };
