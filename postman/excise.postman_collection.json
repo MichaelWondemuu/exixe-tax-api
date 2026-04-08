@@ -2,11 +2,11 @@
   "info": {
     "name": "Excise Directive 1004/2024 API",
     "_postman_id": "a9a1c6b8-2d45-4c2d-9c02-6bb7fdbe1004",
-    "description": "End-to-end collection for Excise Directive 1004/2024 flows: facilities, delivery notes, stamp requests, forecasts, stock events, and verification.",
+    "description": "Excise module (`/v1/excise`) and registration admin shortcut (`POST /v1/registrations/admin/applications/:id/under-review`). Paths match `app/modules/excise/routes/*.routes.js` and registration admin routes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5000/v1" },
+    { "key": "baseUrl", "value": "http://localhost:5001/v1" },
     { "key": "authToken", "value": "" },
     { "key": "systemAuthToken", "value": "" },
     { "key": "facilityId", "value": "" },
@@ -15,7 +15,8 @@
     { "key": "stampRequestId", "value": "" },
     { "key": "forecastId", "value": "" },
     { "key": "stockEventId", "value": "" },
-    { "key": "verificationId", "value": "" }
+    { "key": "verificationId", "value": "" },
+    { "key": "applicationId", "value": "" }
   ],
   "item": [
     {
@@ -36,6 +37,34 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"actorType\": \"PUBLIC\",\n  \"channel\": \"MOBILE_APP\",\n  \"result\": \"AUTHENTIC\",\n  \"stampIdentifier\": \"UI-TEST-0001\",\n  \"productDescription\": \"Sample beverage\",\n  \"verificationEvidence\": {\n    \"deviceId\": \"android-01\",\n    \"geo\": \"Addis Ababa\"\n  },\n  \"remarks\": \"Public verification\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registration Admin",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{systemAuthToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Mark Application Under Review",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/registrations/admin/applications/{{applicationId}}/under-review",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "registrations",
+                "admin",
+                "applications",
+                "{{applicationId}}",
+                "under-review"
+              ]
             }
           }
         }
@@ -136,12 +165,52 @@
                   "path": ["excise", "facilities", "{{facilityId}}"]
                 }
               }
+            },
+            {
+              "name": "Update Facility (PATCH)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/facilities/{{facilityId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "facilities", "{{facilityId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Main Factory (Updated)\",\n  \"isActive\": true\n}"
+                }
+              }
             }
           ]
         },
         {
           "name": "Delivery Notes",
           "item": [
+            {
+              "name": "List Delivery Notes",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/delivery-notes",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "delivery-notes"]
+                }
+              }
+            },
+            {
+              "name": "Get Delivery Note By Id",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/delivery-notes/{{deliveryNoteId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "delivery-notes", "{{deliveryNoteId}}"]
+                }
+              }
+            },
             {
               "name": "Create Delivery Note",
               "event": [
@@ -174,7 +243,7 @@
               }
             },
             {
-              "name": "Submit Delivery Note",
+              "name": "Update Delivery Note Status — SUBMITTED",
               "request": {
                 "method": "PATCH",
                 "header": [
@@ -187,12 +256,79 @@
                 },
                 "body": { "mode": "raw", "raw": "{\n  \"status\": \"SUBMITTED\"\n}" }
               }
+            },
+            {
+              "name": "Update Delivery Note Status — APPROVED",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/delivery-notes/{{deliveryNoteId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "delivery-notes", "{{deliveryNoteId}}", "status"]
+                },
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"APPROVED\"\n}" }
+              }
+            },
+            {
+              "name": "Update Delivery Note Status — DISPATCHED",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/delivery-notes/{{deliveryNoteId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "delivery-notes", "{{deliveryNoteId}}", "status"]
+                },
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"DISPATCHED\"\n}" }
+              }
+            },
+            {
+              "name": "Update Delivery Note Status — RECEIVED",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/delivery-notes/{{deliveryNoteId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "delivery-notes", "{{deliveryNoteId}}", "status"]
+                },
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"RECEIVED\"\n}" }
+              }
             }
           ]
         },
         {
           "name": "Stamp Requests",
           "item": [
+            {
+              "name": "List Stamp Requests",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-requests",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-requests"]
+                }
+              }
+            },
+            {
+              "name": "Get Stamp Request By Id",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-requests/{{stampRequestId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-requests", "{{stampRequestId}}"]
+                }
+              }
+            },
             {
               "name": "Create Stamp Request",
               "event": [
@@ -220,7 +356,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"facilityId\": \"{{facilityId}}\",\n  \"goodsCategory\": \"NON_ALCOHOLIC_SSB\",\n  \"goodsDescription\": \"Sweetened carbonated beverages\",\n  \"quantity\": 50000,\n  \"requiredByDate\": \"2026-09-15T00:00:00.000Z\",\n  \"plannedProductionOrImportDate\": \"2026-10-01T00:00:00.000Z\"\n}"
+                  "raw": "{\n  \"facilityId\": \"{{facilityId}}\",\n  \"goodsCategory\": \"NON_ALCOHOLIC_SSB\",\n  \"goodsDescription\": \"Sweetened carbonated beverages\",\n  \"quantity\": 50000,\n  \"requiredByDate\": \"2026-12-15T00:00:00.000Z\",\n  \"plannedProductionOrImportDate\": \"2026-10-01T00:00:00.000Z\"\n}"
                 }
               }
             },
@@ -252,12 +388,45 @@
                   "path": ["excise", "stamp-requests", "{{stampRequestId}}", "submit"]
                 }
               }
+            },
+            {
+              "name": "Fulfill Stamp Request (after admin APPROVED)",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-requests/{{stampRequestId}}/fulfill",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-requests", "{{stampRequestId}}", "fulfill"]
+                }
+              }
             }
           ]
         },
         {
           "name": "Forecasts",
           "item": [
+            {
+              "name": "List Forecasts",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/forecasts",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "forecasts"]
+                }
+              }
+            },
+            {
+              "name": "Get Forecast By Id",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/forecasts/{{forecastId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "forecasts", "{{forecastId}}"]
+                }
+              }
+            },
             {
               "name": "Create 6-Month Forecast",
               "event": [
@@ -290,6 +459,24 @@
               }
             },
             {
+              "name": "Update Forecast (PATCH, DRAFT only)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/excise/forecasts/{{forecastId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "forecasts", "{{forecastId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"goodsCategory\": \"NON_ALCOHOLIC_SSB\",\n  \"monthlyPlan\": [\n    { \"month\": \"2026-10\", \"quantity\": 12100 },\n    { \"month\": \"2026-11\", \"quantity\": 12500 },\n    { \"month\": \"2026-12\", \"quantity\": 13000 },\n    { \"month\": \"2027-01\", \"quantity\": 12800 },\n    { \"month\": \"2027-02\", \"quantity\": 12700 },\n    { \"month\": \"2027-03\", \"quantity\": 13200 }\n  ]\n}"
+                }
+              }
+            },
+            {
               "name": "Submit Forecast",
               "request": {
                 "method": "POST",
@@ -305,6 +492,28 @@
         {
           "name": "Stamp Stock Events (Return/Wastage/Transfer)",
           "item": [
+            {
+              "name": "List Stamp Stock Events",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-stock-events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-stock-events"]
+                }
+              }
+            },
+            {
+              "name": "Get Stamp Stock Event By Id",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-stock-events/{{stockEventId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-stock-events", "{{stockEventId}}"]
+                }
+              }
+            },
             {
               "name": "Create Transfer Event",
               "event": [
@@ -344,6 +553,17 @@
                   "raw": "{{baseUrl}}/excise/stamp-stock-events/{{stockEventId}}/submit",
                   "host": ["{{baseUrl}}"],
                   "path": ["excise", "stamp-stock-events", "{{stockEventId}}", "submit"]
+                }
+              }
+            },
+            {
+              "name": "Complete Stock Event (after admin APPROVED)",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-stock-events/{{stockEventId}}/complete",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-stock-events", "{{stockEventId}}", "complete"]
                 }
               }
             }
@@ -393,6 +613,17 @@
                   "path": ["excise", "stamp-verifications"]
                 }
               }
+            },
+            {
+              "name": "Get Verification By Id",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/excise/stamp-verifications/{{verificationId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["excise", "stamp-verifications", "{{verificationId}}"]
+                }
+              }
             }
           ]
         }
@@ -423,6 +654,24 @@
           }
         },
         {
+          "name": "Review Stamp Request (Reject)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-requests/{{stampRequestId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-requests", "{{stampRequestId}}", "review"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"REJECTED\",\n  \"rejectionReason\": \"Incomplete documentation\"\n}"
+            }
+          }
+        },
+        {
           "name": "Review Stock Event (Approve)",
           "request": {
             "method": "PATCH",
@@ -438,6 +687,24 @@
           }
         },
         {
+          "name": "Review Stock Event (Reject)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-stock-events/{{stockEventId}}/review",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-stock-events", "{{stockEventId}}", "review"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"REJECTED\",\n  \"rejectionReason\": \"Evidence insufficient\"\n}"
+            }
+          }
+        },
+        {
           "name": "List SLA Breaches",
           "request": {
             "method": "GET",
@@ -449,6 +716,28 @@
           }
         },
         {
+          "name": "List Forecasts (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/forecasts",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "forecasts"]
+            }
+          }
+        },
+        {
+          "name": "Get Forecast By Id (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/forecasts/{{forecastId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "forecasts", "{{forecastId}}"]
+            }
+          }
+        },
+        {
           "name": "Verification Summary",
           "request": {
             "method": "GET",
@@ -456,6 +745,28 @@
               "raw": "{{baseUrl}}/excise/admin/stamp-verifications/summary",
               "host": ["{{baseUrl}}"],
               "path": ["excise", "admin", "stamp-verifications", "summary"]
+            }
+          }
+        },
+        {
+          "name": "List Verifications (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-verifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-verifications"]
+            }
+          }
+        },
+        {
+          "name": "Get Verification By Id (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-verifications/{{verificationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-verifications", "{{verificationId}}"]
             }
           }
         }

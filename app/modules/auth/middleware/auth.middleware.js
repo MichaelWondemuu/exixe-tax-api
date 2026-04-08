@@ -148,6 +148,18 @@ export function authMiddleware() {
               ),
             );
           }
+          if (
+            typeof error.message === 'string' &&
+            error.message.includes('JWT secret is not configured')
+          ) {
+            return next(
+              new HttpError(
+                503,
+                'AUTH_MISCONFIGURED',
+                'JWT is not configured on the server (JWT_SECRET / APP_AUTH_TOKEN).',
+              ),
+            );
+          }
 
           // For other errors, continue to check other auth methods (headers, etc.)
           // Don't fail here, allow other auth methods
@@ -190,7 +202,13 @@ export function authMiddleware() {
           }
         }
       } else {
-        return next(new HttpError(401, 'UNAUTHORIZED', 'User not found'));
+        return next(
+          new HttpError(
+            401,
+            'UNAUTHORIZED',
+            'Authentication required. Send a valid Authorization: Bearer <access_token> header (or x-user-key where permitted).',
+          ),
+        );
       }
 
       next();

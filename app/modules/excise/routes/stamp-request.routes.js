@@ -9,10 +9,14 @@ import {
   stampRequestPaymentSchema,
   stampRequestReviewSchema,
 } from '../schemas/stamp-request.schemas.js';
+import { authMiddleware } from '../../auth/middleware/auth.middleware.js';
+import { requireSystemUser } from '../../auth/middleware/index.js';
 
 export const buildStampRequestRouter = ({ stampRequestController }) => {
   const router = express.Router();
+  router.use(authMiddleware());
   const adminRouter = express.Router();
+  adminRouter.use(requireSystemUser());
 
   router.get('/stamp-requests', stampRequestController.list);
   router.get(
@@ -42,7 +46,10 @@ export const buildStampRequestRouter = ({ stampRequestController }) => {
     stampRequestController.fulfill,
   );
 
-  adminRouter.get('/stamp-requests/sla-breaches', stampRequestController.listSlaBreaches);
+  adminRouter.get(
+    '/stamp-requests/sla-breaches',
+    stampRequestController.listSlaBreaches,
+  );
   adminRouter.patch(
     '/stamp-requests/:id/review',
     validateParams(idParamsSchema),

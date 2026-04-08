@@ -71,7 +71,7 @@ const STOCK_EVENT_TRANSITIONS = Object.freeze({
   [STAMP_STOCK_EVENT_STATUS.CANCELLED]: [],
 });
 
-const MIN_STAMP_APPLICATION_LEAD_DAYS = 60;
+const MIN_STAMP_APPLICATION_LEAD_DAYS = 29;
 const TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS = 5;
 let stampSchemaReadyPromise = null;
 let forecastSchemaReadyPromise = null;

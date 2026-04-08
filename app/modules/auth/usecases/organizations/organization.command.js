@@ -182,7 +182,7 @@ export class OrganizationService {
     return { data: detail };
   };
 
-  createOrganizationDetail = async (req, organizationId, data) => {
+  async createOrganizationDetail(req, organizationId, data) {
     const organization = await this.organizationRepository.findById(
       req,
       organizationId,
@@ -211,9 +211,9 @@ export class OrganizationService {
       ...payload,
     });
     return { message: 'Organization detail created', data: detail };
-  };
+  }
 
-  updateOrganizationDetail = async (req, organizationId, data) => {
+  async updateOrganizationDetail(req, organizationId, data) {
     const organization = await this.organizationRepository.findById(
       req,
       organizationId,
@@ -245,7 +245,7 @@ export class OrganizationService {
       });
     }
     return { message: 'Organization detail updated', data: detail };
-  };
+  }
 
   deleteOrganizationDetail = async (req, organizationId) => {
     const organization = await this.organizationRepository.findById(
@@ -345,7 +345,7 @@ export class OrganizationService {
     return { data: { content }, contentType: 'text/plain' };
   };
 
-  createOrganization = async (req, data) => {
+  async createOrganization(req, data) {
     if (!data.name) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'Name is required');
     }
@@ -618,9 +618,9 @@ export class OrganizationService {
       message: 'Organization created',
       data: orgWithRelations,
     };
-  };
+  }
 
-  updateOrganization = async (req, id, data) => {
+  async updateOrganization(req, id, data) {
     const organization = await this.organizationRepository.findById(req, id);
     if (!organization) {
       throw new HttpError(
@@ -890,7 +890,7 @@ export class OrganizationService {
       message: 'Organization updated',
       data: orgWithRelations || updatedOrganization,
     };
-  };
+  }
 
   deleteOrganization = async (req, id) => {
     const organization = await this.organizationRepository.findById(req, id);
@@ -935,7 +935,7 @@ export class OrganizationService {
     );
   };
 
-  createUserInOrganization = async (req, data) => {
+  async createUserInOrganization(req, data) {
     if (!data.organizationId) {
       throw new HttpError(
         400,
@@ -1160,7 +1160,7 @@ export class OrganizationService {
       // Re-throw other errors
       throw error;
     }
-  };
+  }
 
   // ===========================================================================
   // ORGANIZATION WALLETS
@@ -1250,36 +1250,36 @@ export class OrganizationService {
 
 /** CQRS command surface for organizations (inherits full use case implementation). */
 export class OrganizationCommandService extends OrganizationService {
-  createOrganization = async (req, data) => {
+  async createOrganization(req, data) {
     const result = await super.createOrganization(req, data);
     return mapOrganizationCommandPayload(result);
-  };
+  }
 
-  updateOrganization = async (req, id, data) => {
+  async updateOrganization(req, id, data) {
     const result = await super.updateOrganization(req, id, data);
     return mapOrganizationCommandPayload(result);
-  };
+  }
 
-  createOrganizationDetail = async (req, organizationId, data) => {
+  async createOrganizationDetail(req, organizationId, data) {
     const result = await super.createOrganizationDetail(
       req,
       organizationId,
       data,
     );
     return mapOrganizationDetailCommandPayload(result);
-  };
+  }
 
-  updateOrganizationDetail = async (req, organizationId, data) => {
+  async updateOrganizationDetail(req, organizationId, data) {
     const result = await super.updateOrganizationDetail(
       req,
       organizationId,
       data,
     );
     return mapOrganizationDetailCommandPayload(result);
-  };
+  }
 
-  createUserInOrganization = async (req, data) => {
+  async createUserInOrganization(req, data) {
     const result = await super.createUserInOrganization(req, data);
     return mapUserInOrgCommandPayload(result);
-  };
+  }
 }

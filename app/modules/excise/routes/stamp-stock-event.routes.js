@@ -8,10 +8,16 @@ import {
   stockEventBodySchema,
   stockEventReviewSchema,
 } from '../schemas/stamp-stock-event.schemas.js';
+import {
+  authMiddleware,
+  requireSystemUser,
+} from '../../auth/middleware/index.js';
 
 export const buildStampStockEventRouter = ({ stampStockEventController }) => {
   const router = express.Router();
+  router.use(authMiddleware());
   const adminRouter = express.Router();
+  adminRouter.use(requireSystemUser());
 
   router.get('/stamp-stock-events', stampStockEventController.list);
   router.get(

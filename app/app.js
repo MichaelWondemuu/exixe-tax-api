@@ -79,24 +79,18 @@ const bootstrap = async () => {
   // Configure CORS with explicit origin allowlist (especially important with credentials=true)
   app.use(
     cors({
-      origin: (origin, callback) => {
-        if (env.nodeEnv !== 'production') {
-          return callback(null, true);
-        }
-
-        if (!origin) {
-          return callback(null, true);
-        }
-
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-
-        return callback(new Error('CORS origin not allowed'));
-      },
+      origin: '*',
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'x-api-key',
+        'x-user-key',
+        'x-organization-id',
+        'x-user-id',
+        'x-pin',
+      ],
       preflightContinue: false,
       optionsSuccessStatus: 204,
     }),
