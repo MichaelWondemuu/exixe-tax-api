@@ -1,6 +1,85 @@
 import { HttpError } from '../../../../shared/utils/http-error.js';
 import { models } from '../../../../shared/db/data-source.js';
 
+export function mergeVariantAttributes(baseAttributes = [], orgAttributes = []) {
+  const base = (baseAttributes || []).map((attr) =>
+    attr?.toJSON ? attr.toJSON() : { ...attr },
+  );
+  const org = (orgAttributes || []).map((attr) =>
+    attr?.toJSON ? attr.toJSON() : { ...attr },
+  );
+
+  if (!org.length) return base;
+
+  const byKey = new Map(base.map((attr) => [String(attr.key || '').toLowerCase(), attr]));
+  for (const attr of org) {
+    const key = String(attr.key || '').toLowerCase();
+    byKey.set(key, {
+      ...(byKey.get(key) || {}),
+      ...attr,
+    });
+  }
+  return Array.from(byKey.values());
+}
+
+export function mergeVariants(baseVariants = [], orgVariants = []) {
+  const base = (baseVariants || []).map((variant) =>
+    variant?.toJSON ? variant.toJSON() : { ...variant },
+  );
+  const org = (orgVariants || []).map((variant) =>
+    variant?.toJSON ? variant.toJSON() : { ...variant },
+  );
+
+  if (!org.length) return base;
+
+  const byBaseId = new Map(base.map((variant) => [variant.id, variant]));
+  const result = [...base];
+
+  for (const orgVariant of org) {
+    const sourceBase =
+      orgVariant.productVariant ||
+      (orgVariant.productVariantId ? byBaseId.get(orgVariant.productVariantId) : null);
+    const orgAttrs = orgVariant.attributes || [];
+
+    if (sourceBase) {
+      const baseAttrs = sourceBase.attributes || [];
+      const merged = {
+        ...sourceBase,
+        name: orgVariant.name ?? sourceBase.name,
+        sku: orgVariant.sku ?? sourceBase.sku,
+        unitValue: orgVariant.unitValue ?? sourceBase.unitValue,
+        sellingPrice: orgVariant.sellingPrice ?? sourceBase.sellingPrice,
+        isActive: orgVariant.isActive ?? sourceBase.isActive,
+        organizationProductVariantId: orgVariant.id,
+        attributes: mergeVariantAttributes(baseAttrs, orgAttrs),
+      };
+
+      const existingIndex = result.findIndex((variant) => variant.id === sourceBase.id);
+      if (existingIndex >= 0) {
+        result[existingIndex] = merged;
+      } else {
+        result.push(merged);
+      }
+      continue;
+    }
+
+    result.push({
+      id: orgVariant.id,
+      isOrganizationCustom: true,
+      sourceVariantId: orgVariant.productVariantId || null,
+      name: orgVariant.name,
+      sku: orgVariant.sku,
+      unitValue: orgVariant.unitValue,
+      sellingPrice: orgVariant.sellingPrice,
+      isActive: orgVariant.isActive ?? true,
+      organizationProductVariantId: orgVariant.id,
+      attributes: mergeVariantAttributes([], orgAttrs),
+    });
+  }
+
+  return result;
+}
+
 export class ProductQueryService {
   /**
    * @param {{
@@ -12,6 +91,10 @@ export class ProductQueryService {
     this.productRepository = productRepository;
     this.organizationProductRepository = organizationProductRepository;
   }
+
+  mergeVariantAttributes = mergeVariantAttributes;
+
+  mergeVariants = mergeVariants;
 
   listProducts = async (req, queryParams = {}) =>
     this.productRepository.findAllDetailed(req, queryParams);
@@ -69,21 +152,32 @@ export class ProductQueryService {
         imageUrl: o.imageUrl ?? j.imageUrl,
         isActive: o.isActive ?? j.isActive,
         organizationProductId: o.id,
+        variants: mergeVariants(j.variants || [], o.variants || []),
       };
     });
 
-    const customRows = customs.map((o) => ({
-      id: o.id,
-      isOrganizationCustom: true,
-      sourceProductId: null,
-      organizationId: o.organizationId,
-      name: o.name,
-      description: o.description,
-      imageUrl: o.imageUrl,
-      isActive: o.isActive ?? true,
-      createdAt: o.createdAt,
-      updatedAt: o.updatedAt,
-    }));
+    const customRows = customs.map((o) => {
+      const j = o.toJSON ? o.toJSON() : o;
+      return {
+        id: j.id,
+        isOrganizationCustom: true,
+        sourceProductId: null,
+        organizationId: j.organizationId,
+        name: j.name,
+        description: j.description,
+        imageUrl: j.imageUrl,
+        isActive: j.isActive ?? true,
+        categoryId: j.categoryId ?? null,
+        category: j.category ?? null,
+        productTypeId: j.productTypeId ?? null,
+        productType: j.productType ?? null,
+        measurementId: j.measurementId ?? null,
+        measurement: j.measurement ?? null,
+        createdAt: j.createdAt,
+        updatedAt: j.updatedAt,
+        variants: mergeVariants([], o.variants || []),
+      };
+    });
 
     return [...merged, ...customRows];
   };
@@ -101,6 +195,25 @@ export class ProductQueryService {
     const orgProduct = await models.OrganizationProduct.findOne({
       where: { id: orgProductId, organizationId },
       include: [
+        {
+          model: models.Product,
+          as: 'product',
+          attributes: ['id'],
+          include: [
+            {
+              model: models.ProductVariant,
+              as: 'variants',
+              attributes: ['id', 'productId', 'name', 'sku', 'unitValue', 'sellingPrice', 'isActive'],
+              include: [
+                {
+                  model: models.ProductVariantAttribute,
+                  as: 'attributes',
+                  attributes: ['id', 'variantId', 'key', 'value'],
+                },
+              ],
+            },
+          ],
+        },
         {
           model: models.OrganizationProductVariant,
           as: 'variants',
@@ -122,7 +235,9 @@ export class ProductQueryService {
     if (!orgProduct) {
       throw new HttpError(404, 'NOT_FOUND', 'Organization product not found');
     }
-    return orgProduct.variants || [];
+    const baseVariants = orgProduct.product?.variants || [];
+    const orgVariants = orgProduct.variants || [];
+    return this.mergeVariants(baseVariants, orgVariants);
   };
 
   getProductById = async (req, id) => {

@@ -11,6 +11,24 @@ export class OrganizationProductRepository extends BaseRepository {
       where: { organizationId },
       include: [
         {
+          model: models.Category,
+          as: 'category',
+          attributes: ['id', 'name'],
+          required: false,
+        },
+        {
+          model: models.ProductType,
+          as: 'productType',
+          attributes: ['id', 'name'],
+          required: false,
+        },
+        {
+          model: models.Measurement,
+          as: 'measurement',
+          attributes: ['id', 'name', 'shortForm'],
+          required: false,
+        },
+        {
           model: models.Product,
           as: 'product',
           include: [
@@ -30,8 +48,68 @@ export class OrganizationProductRepository extends BaseRepository {
             },
           ],
         },
+        {
+          model: models.OrganizationProductVariant,
+          as: 'variants',
+          include: [
+            {
+              model: models.OrganizationProductVariantAttribute,
+              as: 'attributes',
+              attributes: ['id', 'organizationProductVariantId', 'key', 'value'],
+            },
+            {
+              model: models.ProductVariant,
+              as: 'productVariant',
+              attributes: ['id', 'productId', 'name', 'sku', 'unitValue', 'sellingPrice', 'isActive'],
+              include: [
+                {
+                  model: models.ProductVariantAttribute,
+                  as: 'attributes',
+                  attributes: ['id', 'variantId', 'key', 'value'],
+                },
+              ],
+            },
+          ],
+        },
       ],
       order: [['createdAt', 'DESC']],
+    });
+  }
+
+  findByIdForOrganization(organizationId, id) {
+    return this.Model.findOne({
+      where: { id, organizationId },
+      include: [
+        {
+          model: models.Category,
+          as: 'category',
+          attributes: ['id', 'name'],
+          required: false,
+        },
+        {
+          model: models.ProductType,
+          as: 'productType',
+          attributes: ['id', 'name'],
+          required: false,
+        },
+        {
+          model: models.Measurement,
+          as: 'measurement',
+          attributes: ['id', 'name', 'shortForm'],
+          required: false,
+        },
+        {
+          model: models.OrganizationProductVariant,
+          as: 'variants',
+          include: [
+            {
+              model: models.OrganizationProductVariantAttribute,
+              as: 'attributes',
+              attributes: ['id', 'organizationProductVariantId', 'key', 'value'],
+            },
+          ],
+        },
+      ],
     });
   }
 

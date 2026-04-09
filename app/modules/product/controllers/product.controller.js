@@ -253,6 +253,7 @@ export class ProductController {
       const result = await this.productCommandService.createOrganizationCustomProduct(
         req,
         req.body || {},
+        req.file,
       );
       res.status(201).json(formatResponse(result, 201));
     } catch (error) {
@@ -266,6 +267,7 @@ export class ProductController {
         req,
         req.params.orgProductId,
         req.body || {},
+        req.file,
       );
       res.json(formatResponse(result));
     } catch (error) {
