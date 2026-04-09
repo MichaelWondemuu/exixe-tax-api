@@ -19,6 +19,11 @@ export const getBaseFields = () => ({
     onUpdate: 'CASCADE',
     onDelete: 'RESTRICT',
   },
+  organizationName: {
+    type: DataTypes.STRING(255),
+    field: 'organization_name',
+    allowNull: true,
+  },
   createdAt: {
     type: DataTypes.DATE,
     field: 'created_at',

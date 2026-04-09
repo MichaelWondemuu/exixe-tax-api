@@ -1,0 +1,316 @@
+{
+  "info": {
+    "_postman_id": "8a4bde30-1453-4e26-b6f2-8d798d9973f9",
+    "name": "Excise Tax API - Stamps & Labels",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for Stamps & Labels lifecycle: Generate -> Issue -> Assign -> Apply -> Activate -> Track -> Verify -> Audit, including public verification and enforcement."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001" },
+    { "key": "apiPrefix", "value": "/v1" },
+    { "key": "token", "value": "" },
+    { "key": "organizationId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "stampLabelId", "value": "" },
+    { "key": "stampUid", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"+2519XXXXXXXX\",\n  \"pin\": \"1234\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const token = res?.data?.[0]?.accessToken || res?.data?.accessToken || res?.accessToken;",
+              "const orgId = res?.data?.[0]?.organizationId || res?.data?.organizationId || res?.organizationId;",
+              "if (token) pm.collectionVariables.set('token', token);",
+              "if (orgId) pm.collectionVariables.set('organizationId', orgId);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stamps & Labels - Generate",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"count\": 1,\n  \"uidPrefix\": \"ET-EXS\",\n  \"digitalLinkBase\": \"https://verify.ers.gov.et/stamps\",\n  \"codeFormat\": \"GS1_DATAMATRIX\",\n  \"operatorType\": \"MANUFACTURER\",\n  \"operatorName\": \"Abebe Beverages PLC\",\n  \"operatorTin\": \"0012345678\",\n  \"operatorLicenseNumber\": \"ET-EXC-2026-0001\",\n  \"ethiopiaRevenueOffice\": \"Addis Ababa Large Taxpayers Office\",\n  \"productId\": \"{{productId}}\",\n  \"productName\": \"Excisable Beverage 500ml\",\n  \"packageLevel\": \"UNIT\",\n  \"batchNumber\": \"BATCH-APR-2026-01\",\n  \"productionDate\": \"2026-04-09T07:00:00.000Z\",\n  \"forecastReference\": \"FORECAST-2026-APR\",\n  \"forecastSubmittedAt\": \"2026-01-01T08:00:00.000Z\",\n  \"requiresSixtyDayForecast\": true,\n  \"isImported\": false,\n  \"metadata\": {\n    \"country\": \"ET\",\n    \"standard\": \"WHO-FCTC-ITP\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/admin/generate",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "admin", "generate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const payload = res?.data?.[0] || res?.data;",
+              "const first = payload?.stamps?.[0];",
+              "if (first?.id) pm.collectionVariables.set('stampLabelId', first.id);",
+              "if (first?.stampUid) pm.collectionVariables.set('stampUid', first.stampUid);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stamps & Labels - Issue",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"issuedAt\": \"2026-04-09T08:00:00.000Z\",\n  \"notes\": \"Issued according to approved monthly plan\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/issue",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "issue"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Assign",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"assignedAt\": \"2026-04-09T09:00:00.000Z\",\n  \"assignedToOperatorId\": \"LINE-OP-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/assign",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "assign"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Apply",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"appliedAt\": \"2026-04-09T09:20:00.000Z\",\n  \"applicationLineCode\": \"LINE-1\",\n  \"locationCode\": \"AA-FAC-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/apply",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "apply"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Activate",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activatedAt\": \"2026-04-09T09:35:00.000Z\",\n  \"activationLocationCode\": \"AA-FAC-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/activate",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "activate"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Track",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trackedAt\": \"2026-04-09T10:10:00.000Z\",\n  \"locationCode\": \"AA-WH-01\",\n  \"checkpoint\": \"Warehouse intake\",\n  \"scanDeviceId\": \"SCN-ET-0001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/track",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "track"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Verify (Operator/Inspector)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"channel\": \"SCANNER\",\n  \"result\": \"AUTHENTIC\",\n  \"verifiedAt\": \"2026-04-09T10:20:00.000Z\",\n  \"locationCode\": \"AA-WH-01\",\n  \"inspectorBadge\": \"ERCA-INS-0021\",\n  \"remarks\": \"Validated during field inspection\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "verify"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Audit",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"auditedAt\": \"2026-04-09T10:40:00.000Z\",\n  \"inspectionReference\": \"ET-AUD-2026-0044\",\n  \"findings\": {\n    \"compliant\": true,\n    \"notes\": \"No discrepancy\"\n  },\n  \"notes\": \"Routine monthly audit\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/audit",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "audit"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Audit Trail",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/{{stampLabelId}}/audit",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "{{stampLabelId}}", "audit"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Verify (Public)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stampUid\": \"{{stampUid}}\",\n  \"channel\": \"MOBILE_APP\",\n  \"result\": \"AUTHENTIC\",\n  \"remarks\": \"Public QR verification\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/public/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "public", "verify"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Enforce (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"WARNING\",\n  \"caseNumber\": \"ET-ENF-2026-0019\",\n  \"notes\": \"Observation logged for follow-up\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/admin/{{stampLabelId}}/enforce",
+          "host": ["{{baseUrl}}"],
+          "path": [
+            "{{apiPrefix}}",
+            "stamps-labels",
+            "admin",
+            "{{stampLabelId}}",
+            "enforce"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/summary",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels", "summary"]
+        }
+      }
+    },
+    {
+      "name": "Stamps & Labels - List",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels?page=1&page_size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "stamps-labels"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "page_size", "value": "20" }
+          ]
+        }
+      }
+    }
+  ]
+}
