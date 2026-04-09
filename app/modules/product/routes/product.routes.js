@@ -89,11 +89,36 @@ const orgProductOverrideBodySchema = yup.object({
   isActive: yup.boolean(),
 });
 
-const orgCustomProductBodySchema = yup.object({
-  name: yup.string().trim().min(1).max(255).required(),
-  description: yup.string().trim().max(2000).nullable(),
-  imageUrl: yup.string().trim().max(500).nullable(),
-  isActive: yup.boolean(),
+/** Same payload shape as global `POST /v1/products` (catalog fields + variants + optional image upload). */
+const orgCustomProductBodySchema = productBodySchema;
+
+const orgProductUpdateBodySchema = yup.object({
+  name: yup.string().trim().max(255).nullable().optional(),
+  description: yup.string().trim().max(2000).nullable().optional(),
+  imageUrl: yup.string().trim().max(500).nullable().optional(),
+  isActive: yup.boolean().optional(),
+  categoryId: yup.string().uuid().optional(),
+  productTypeId: yup.string().uuid().optional(),
+  measurementId: yup.string().uuid().optional(),
+  variants: yup
+    .mixed()
+    .optional()
+    .test(
+      'variants-array-or-json',
+      'variants must be an array or JSON string array',
+      (value) => {
+        if (value === undefined) return true;
+        if (Array.isArray(value)) return true;
+        if (typeof value === 'string') {
+          try {
+            return Array.isArray(JSON.parse(value));
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      },
+    ),
 });
 
 const orgProductVariantBodySchema = yup.object({
@@ -126,6 +151,7 @@ export const buildProductRouter = ({ productController }) => {
   router.get('/organization-products', productController.listOrganizationProducts);
   router.post(
     '/organization-products/custom',
+    parseOptionalProductImage,
     validateBody(orgCustomProductBodySchema),
     productController.createOrganizationCustomProduct,
   );
@@ -138,7 +164,8 @@ export const buildProductRouter = ({ productController }) => {
   router.put(
     '/organization-products/:orgProductId',
     validateParams(orgProductIdParamsSchema),
-    validateBody(orgProductOverrideBodySchema),
+    parseOptionalProductImage,
+    validateBody(orgProductUpdateBodySchema),
     productController.updateOrganizationProduct,
   );
   router.delete(
