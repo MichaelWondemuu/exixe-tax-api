@@ -8,10 +8,33 @@ function rowProductId(p) {
   return typeof p.toJSON === 'function' ? p.toJSON().id : undefined;
 }
 
-/** Stable map/set keys for Sequelize UUIDs (string vs Buffer/class mismatch). */
+/**
+ * Stable map/set keys for catalog product ids (UUID string casing, Buffer from pg, etc.).
+ */
 function normProductId(id) {
   if (id == null || id === '') return undefined;
-  return String(id);
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(id)) {
+    const h = id.toString('hex');
+    if (h.length === 32) {
+      return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`.toLowerCase();
+    }
+  }
+  return String(id).trim().toLowerCase();
+}
+
+function mergeGlobalProductWithOrgOverride(p, o) {
+  const j = p.toJSON ? p.toJSON() : { ...p };
+  return {
+    ...j,
+    name: o.name ?? j.name,
+    description: o.description ?? j.description,
+    imageUrl: o.imageUrl ?? j.imageUrl,
+    isActive: o.isActive ?? j.isActive,
+    organizationProductId: o.id,
+    isOrganizationOverride: true,
+    sourceProductId: normProductId(o.productId) ?? String(o.productId),
+    variants: mergeVariants(j.variants || [], o.variants || []),
+  };
 }
 
 export function mergeVariantAttributes(baseAttributes = [], orgAttributes = []) {
@@ -157,23 +180,30 @@ export class ProductQueryService {
     );
     const customs = orgRows.filter((r) => !r.productId);
 
-    const merged = baseRows.map((p) => {
+    let merged = baseRows.map((p) => {
       const pid = normProductId(rowProductId(p));
       const o = pid ? overrides.get(pid) : undefined;
       if (!o) return p;
-      const j = p.toJSON ? p.toJSON() : { ...p };
-      return {
-        ...j,
-        name: o.name ?? j.name,
-        description: o.description ?? j.description,
-        imageUrl: o.imageUrl ?? j.imageUrl,
-        isActive: o.isActive ?? j.isActive,
-        organizationProductId: o.id,
-        isOrganizationOverride: true,
-        sourceProductId: normProductId(o.productId) ?? o.productId,
-        variants: mergeVariants(j.variants || [], o.variants || []),
-      };
+      return mergeGlobalProductWithOrgOverride(p, o);
     });
+
+    // If the first pass missed (UUID shape mismatch), merge by scanning org override rows
+    // so we never skip an override while the global row is on this page.
+    for (const o of orgRows) {
+      const opid = normProductId(o.productId);
+      if (!opid) continue;
+      const idx = merged.findIndex(
+        (item) => normProductId(rowProductId(item)) === opid,
+      );
+      if (idx < 0) continue;
+      const cur = merged[idx];
+      const applied =
+        cur?.organizationProductId != null &&
+        String(cur.organizationProductId) === String(o.id);
+      if (!applied) {
+        merged[idx] = mergeGlobalProductWithOrgOverride(cur, o);
+      }
+    }
 
     const mergedIds = new Set(
       merged.map((p) => normProductId(rowProductId(p))).filter(Boolean),
@@ -189,18 +219,7 @@ export class ProductQueryService {
       }
       if (!p) continue;
 
-      const j = p.toJSON ? p.toJSON() : { ...p };
-      overrideExtras.push({
-        ...j,
-        name: o.name ?? j.name,
-        description: o.description ?? j.description,
-        imageUrl: o.imageUrl ?? j.imageUrl,
-        isActive: o.isActive ?? j.isActive,
-        organizationProductId: o.id,
-        isOrganizationOverride: true,
-        sourceProductId: opid,
-        variants: mergeVariants(j.variants || [], o.variants || []),
-      });
+      overrideExtras.push(mergeGlobalProductWithOrgOverride(p, o));
     }
 
     const customRows = customs.map((o) => {

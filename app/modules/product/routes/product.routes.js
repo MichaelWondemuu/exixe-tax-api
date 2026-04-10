@@ -121,18 +121,83 @@ const orgProductUpdateBodySchema = yup.object({
     ),
 });
 
-const orgProductVariantBodySchema = yup.object({
-  productVariantId: yup.string().uuid().nullable(),
-  name: yup.string().trim().max(255).nullable(),
-  sku: yup.string().trim().max(100).nullable(),
-  unitValue: yup.number().moreThan(0).nullable(),
-  sellingPrice: yup.number().min(0).nullable(),
-  isActive: yup.boolean().nullable(),
-});
-
-const orgProductVariantAttributeBodySchema = yup.object({
+const orgProductVariantAttributeKVSchema = yup.object({
   key: yup.string().trim().min(1).max(100).required(),
   value: yup.string().trim().min(1).max(255).required(),
+});
+
+/** Create/update org variant; optional `attributes` matches global variant shape. */
+const orgProductVariantBodySchema = yup
+  .object({
+    productVariantId: yup.string().uuid().nullable(),
+    name: yup.string().trim().max(255).nullable(),
+    sku: yup.string().trim().max(100).nullable(),
+    unitValue: yup.number().moreThan(0).nullable(),
+    sellingPrice: yup.number().min(0).nullable(),
+    isActive: yup.boolean().nullable(),
+    attributes: yup.array().of(orgProductVariantAttributeKVSchema).optional(),
+  })
+  .test(
+    'update-has-something',
+    'At least one field or attributes must be provided',
+    (v) => {
+      if (!v) return false;
+      if (v.attributes !== undefined) return true;
+      return (
+        v.productVariantId !== undefined ||
+        v.name !== undefined ||
+        v.sku !== undefined ||
+        v.unitValue !== undefined ||
+        v.sellingPrice !== undefined ||
+        v.isActive !== undefined
+      );
+    },
+  );
+
+/** Single `{ key, value }` or bulk `{ attributes: [{ key, value }, ...] }`. */
+const orgProductVariantAttributesCreateBodySchema = yup
+  .object({
+    key: yup.string().trim().min(1).max(100).optional(),
+    value: yup.string().trim().min(1).max(255).optional(),
+    attributes: yup.array().of(orgProductVariantAttributeKVSchema).optional(),
+  })
+  .test(
+    'single-or-bulk',
+    'Provide { key, value } or non-empty { attributes: [{ key, value }, ...] }',
+    (v) => {
+      if (!v) return false;
+      if (Array.isArray(v.attributes) && v.attributes.length > 0) return true;
+      return Boolean(
+        v.key &&
+          String(v.key).trim() &&
+          v.value &&
+          String(v.value).trim(),
+      );
+    },
+  );
+
+const orgProductVariantAttributeBodySchema = orgProductVariantAttributeKVSchema;
+
+/** Bulk patch existing org variant attributes by id (same variant). */
+const orgProductVariantAttributesBulkUpdateBodySchema = yup.object({
+  attributes: yup
+    .array()
+    .of(
+      yup
+        .object({
+          id: yup.string().uuid().required(),
+          key: yup.string().trim().min(1).max(100).optional(),
+          value: yup.string().trim().min(1).max(255).optional(),
+        })
+        .test(
+          'patch-fields',
+          'Each item must include key and/or value',
+          (item) =>
+            !!item && (item.key !== undefined || item.value !== undefined),
+        ),
+    )
+    .min(1)
+    .required(),
 });
 
 const parseOptionalProductImage = createSingleImageUploadMiddleware({
@@ -198,7 +263,7 @@ export const buildProductRouter = ({ productController }) => {
   router.post(
     '/organization-products/variants/:orgProductVariantId/attributes',
     validateParams(orgProductVariantIdParamsSchema),
-    validateBody(orgProductVariantAttributeBodySchema),
+    validateBody(orgProductVariantAttributesCreateBodySchema),
     productController.createOrganizationProductVariantAttribute,
   );
   router.put(
@@ -206,6 +271,12 @@ export const buildProductRouter = ({ productController }) => {
     validateParams(orgProductVariantAttributeIdParamsSchema),
     validateBody(orgProductVariantAttributeBodySchema),
     productController.updateOrganizationProductVariantAttribute,
+  );
+  router.put(
+    '/organization-products/variants/:orgProductVariantId/attributes',
+    validateParams(orgProductVariantIdParamsSchema),
+    validateBody(orgProductVariantAttributesBulkUpdateBodySchema),
+    productController.bulkUpdateOrganizationProductVariantAttributes,
   );
   router.delete(
     '/organization-products/variants/attributes/:orgProductVariantAttributeId',

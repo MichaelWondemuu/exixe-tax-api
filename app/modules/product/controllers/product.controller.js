@@ -339,6 +339,20 @@ export class ProductController {
     }
   };
 
+  bulkUpdateOrganizationProductVariantAttributes = async (req, res, next) => {
+    try {
+      const result =
+        await this.productCommandService.bulkUpdateOrganizationProductVariantAttributes(
+          req,
+          req.params.orgProductVariantId,
+          req.body || {},
+        );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateOrganizationProductVariantAttribute = async (req, res, next) => {
     try {
       const result =
