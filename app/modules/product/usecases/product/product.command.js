@@ -1,6 +1,6 @@
 import { HttpError } from '../../../../shared/utils/http-error.js';
 import { saveImageToAssets } from '../../../../shared/utils/file-upload.util.js';
-import { models } from '../../../../shared/db/data-source.js';
+import { models, sequelize } from '../../../../shared/db/data-source.js';
 import { mergeVariants } from './product.query.js';
 
 function normalizePayload(body = {}) {
@@ -905,6 +905,48 @@ export class ProductCommandService {
     return { message: 'Organization product removed successfully' };
   };
 
+  findOrganizationProductVariantWithAttributes = (variantId) =>
+    models.OrganizationProductVariant.findByPk(variantId, {
+      include: [
+        {
+          model: models.OrganizationProductVariantAttribute,
+          as: 'attributes',
+          attributes: ['id', 'organizationProductVariantId', 'key', 'value'],
+        },
+      ],
+    });
+
+  syncOrganizationProductVariantAttributes = async (
+    organizationProductVariantId,
+    attributes,
+    transaction,
+  ) => {
+    if (!Array.isArray(attributes)) return;
+    await models.OrganizationProductVariantAttribute.destroy({
+      where: { organizationProductVariantId },
+      transaction,
+    });
+    for (const item of attributes) {
+      const key = item?.key ? String(item.key).trim() : '';
+      const value = item?.value ? String(item.value).trim() : '';
+      if (!key || !value) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'Each attribute requires key and value',
+        );
+      }
+      await models.OrganizationProductVariantAttribute.create(
+        {
+          organizationProductVariantId,
+          key,
+          value,
+        },
+        { transaction },
+      );
+    }
+  };
+
   createOrganizationProductVariant = async (req, orgProductId, body) => {
     const organizationId = this.getOrganizationId(req);
     const orgProduct = await this.organizationProductRepository.getModel().findOne({
@@ -913,7 +955,9 @@ export class ProductCommandService {
     if (!orgProduct) {
       throw new HttpError(404, 'NOT_FOUND', 'Organization product not found');
     }
-    const row = await models.OrganizationProductVariant.create({
+
+    const hasAttributes = Array.isArray(body?.attributes);
+    const variantData = {
       organizationProductId: orgProductId,
       productVariantId: body?.productVariantId || null,
       name: body?.name ? String(body.name).trim() : null,
@@ -927,8 +971,27 @@ export class ProductCommandService {
           ? Number(body.sellingPrice)
           : null,
       isActive: body?.isActive !== undefined ? Boolean(body.isActive) : null,
-    });
-    return row;
+    };
+
+    let row;
+    if (hasAttributes) {
+      row = await sequelize.transaction(async (t) => {
+        const created = await models.OrganizationProductVariant.create(
+          variantData,
+          { transaction: t },
+        );
+        await this.syncOrganizationProductVariantAttributes(
+          created.id,
+          body.attributes,
+          t,
+        );
+        return created;
+      });
+    } else {
+      row = await models.OrganizationProductVariant.create(variantData);
+    }
+
+    return this.findOrganizationProductVariantWithAttributes(row.id);
   };
 
   updateOrganizationProductVariant = async (req, orgProductVariantId, body) => {
@@ -961,11 +1024,26 @@ export class ProductCommandService {
         body.sellingPrice == null ? null : Number(body.sellingPrice);
     }
     if (body?.isActive !== undefined) payload.isActive = Boolean(body.isActive);
-    if (Object.keys(payload).length === 0) {
+
+    const hasAttributesUpdate = body?.attributes !== undefined;
+    if (Object.keys(payload).length === 0 && !hasAttributesUpdate) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'At least one field is required');
     }
-    await row.update(payload);
-    return row;
+
+    await sequelize.transaction(async (t) => {
+      if (Object.keys(payload).length > 0) {
+        await row.update(payload, { transaction: t });
+      }
+      if (hasAttributesUpdate) {
+        await this.syncOrganizationProductVariantAttributes(
+          row.id,
+          body.attributes,
+          t,
+        );
+      }
+    });
+
+    return this.findOrganizationProductVariantWithAttributes(row.id);
   };
 
   deleteOrganizationProductVariant = async (req, orgProductVariantId) => {
@@ -994,11 +1072,7 @@ export class ProductCommandService {
     return { message: 'Organization product variant removed successfully' };
   };
 
-  createOrganizationProductVariantAttribute = async (
-    req,
-    orgProductVariantId,
-    body,
-  ) => {
+  assertOrgProductVariantForOrg = async (req, orgProductVariantId) => {
     const organizationId = this.getOrganizationId(req);
     const variant = await models.OrganizationProductVariant.findOne({
       where: { id: orgProductVariantId },
@@ -1017,6 +1091,44 @@ export class ProductCommandService {
         'Organization product variant not found',
       );
     }
+    return variant;
+  };
+
+  createOrganizationProductVariantAttribute = async (
+    req,
+    orgProductVariantId,
+    body,
+  ) => {
+    await this.assertOrgProductVariantForOrg(req, orgProductVariantId);
+
+    const bulkItems = body?.attributes;
+    if (Array.isArray(bulkItems) && bulkItems.length > 0) {
+      return sequelize.transaction(async (t) => {
+        const created = [];
+        for (const item of bulkItems) {
+          const key = item?.key ? String(item.key).trim() : '';
+          const value = item?.value ? String(item.value).trim() : '';
+          if (!key || !value) {
+            throw new HttpError(
+              400,
+              'VALIDATION_ERROR',
+              'Each attribute requires key and value',
+            );
+          }
+          const row = await models.OrganizationProductVariantAttribute.create(
+            {
+              organizationProductVariantId: orgProductVariantId,
+              key,
+              value,
+            },
+            { transaction: t },
+          );
+          created.push(row);
+        }
+        return created;
+      });
+    }
+
     const key = body?.key ? String(body.key).trim() : '';
     const value = body?.value ? String(body.value).trim() : '';
     if (!key || !value) {
@@ -1030,6 +1142,64 @@ export class ProductCommandService {
       organizationProductVariantId: orgProductVariantId,
       key,
       value,
+    });
+  };
+
+  bulkUpdateOrganizationProductVariantAttributes = async (
+    req,
+    orgProductVariantId,
+    body,
+  ) => {
+    await this.assertOrgProductVariantForOrg(req, orgProductVariantId);
+
+    const items = body?.attributes;
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'attributes array is required',
+      );
+    }
+
+    return sequelize.transaction(async (t) => {
+      const updated = [];
+      for (const item of items) {
+        const row = await models.OrganizationProductVariantAttribute.findOne({
+          where: {
+            id: item.id,
+            organizationProductVariantId: orgProductVariantId,
+          },
+          transaction: t,
+        });
+        if (!row) {
+          throw new HttpError(
+            404,
+            'NOT_FOUND',
+            `Organization product variant attribute not found: ${item.id}`,
+          );
+        }
+        if (item.key !== undefined) {
+          const nextKey = String(item.key || '').trim();
+          if (!nextKey) {
+            throw new HttpError(400, 'VALIDATION_ERROR', 'key cannot be empty');
+          }
+          row.key = nextKey;
+        }
+        if (item.value !== undefined) {
+          const nextValue = String(item.value || '').trim();
+          if (!nextValue) {
+            throw new HttpError(
+              400,
+              'VALIDATION_ERROR',
+              'value cannot be empty',
+            );
+          }
+          row.value = nextValue;
+        }
+        await row.save({ transaction: t });
+        updated.push(row);
+      }
+      return updated;
     });
   };
 
