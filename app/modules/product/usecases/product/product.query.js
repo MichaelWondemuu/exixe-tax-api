@@ -8,6 +8,12 @@ function rowProductId(p) {
   return typeof p.toJSON === 'function' ? p.toJSON().id : undefined;
 }
 
+/** Stable map/set keys for Sequelize UUIDs (string vs Buffer/class mismatch). */
+function normProductId(id) {
+  if (id == null || id === '') return undefined;
+  return String(id);
+}
+
 export function mergeVariantAttributes(baseAttributes = [], orgAttributes = []) {
   const base = (baseAttributes || []).map((attr) =>
     attr?.toJSON ? attr.toJSON() : { ...attr },
@@ -147,12 +153,13 @@ export class ProductQueryService {
     const overrides = new Map(
       orgRows
         .filter((r) => r.productId)
-        .map((r) => [r.productId, r]),
+        .map((r) => [normProductId(r.productId), r]),
     );
     const customs = orgRows.filter((r) => !r.productId);
 
     const merged = baseRows.map((p) => {
-      const o = overrides.get(p.id);
+      const pid = normProductId(rowProductId(p));
+      const o = pid ? overrides.get(pid) : undefined;
       if (!o) return p;
       const j = p.toJSON ? p.toJSON() : { ...p };
       return {
@@ -162,16 +169,26 @@ export class ProductQueryService {
         imageUrl: o.imageUrl ?? j.imageUrl,
         isActive: o.isActive ?? j.isActive,
         organizationProductId: o.id,
+        isOrganizationOverride: true,
+        sourceProductId: normProductId(o.productId) ?? o.productId,
         variants: mergeVariants(j.variants || [], o.variants || []),
       };
     });
 
-    const mergedIds = new Set(merged.map((p) => rowProductId(p)).filter(Boolean));
+    const mergedIds = new Set(
+      merged.map((p) => normProductId(rowProductId(p))).filter(Boolean),
+    );
     const overrideExtras = [];
     for (const o of orgRows) {
-      if (!o.productId || mergedIds.has(o.productId)) continue;
-      const p = o.product;
+      const opid = normProductId(o.productId);
+      if (!opid || mergedIds.has(opid)) continue;
+
+      let p = o.product;
+      if (!p) {
+        p = await this.productRepository.findByIdDetailed(req, opid);
+      }
       if (!p) continue;
+
       const j = p.toJSON ? p.toJSON() : { ...p };
       overrideExtras.push({
         ...j,
@@ -180,6 +197,8 @@ export class ProductQueryService {
         imageUrl: o.imageUrl ?? j.imageUrl,
         isActive: o.isActive ?? j.isActive,
         organizationProductId: o.id,
+        isOrganizationOverride: true,
+        sourceProductId: opid,
         variants: mergeVariants(j.variants || [], o.variants || []),
       });
     }
