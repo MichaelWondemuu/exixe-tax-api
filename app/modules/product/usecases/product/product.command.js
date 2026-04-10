@@ -81,6 +81,18 @@ function normalizeOrgProductUpdateBody(body = {}) {
   };
 }
 
+/** Override upsert returns the `organization_products` row; mirror list fields for clients. */
+function shapeOrganizationProductOverrideResponse(row) {
+  if (!row) return null;
+  const j = row.toJSON ? row.toJSON() : row;
+  return {
+    ...j,
+    organizationProductId: j.id,
+    sourceProductId: j.productId ?? null,
+    isOrganizationOverride: Boolean(j.productId),
+  };
+}
+
 function shapeCustomOrganizationProduct(row) {
   if (!row) return null;
   const j = row.toJSON ? row.toJSON() : row;
@@ -710,13 +722,14 @@ export class ProductCommandService {
     );
     if (existing) {
       await existing.update(clean);
-      return existing;
+      return shapeOrganizationProductOverrideResponse(existing);
     }
-    return this.organizationProductRepository.getModel().create({
+    const created = await this.organizationProductRepository.getModel().create({
       organizationId,
       productId,
       ...clean,
     });
+    return shapeOrganizationProductOverrideResponse(created);
   };
 
   createOrganizationCustomProduct = async (req, body, file = null) => {
