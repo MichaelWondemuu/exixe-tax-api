@@ -31,6 +31,7 @@ export class OrganizationProductRepository extends BaseRepository {
         {
           model: models.Product,
           as: 'product',
+          required: false,
           include: [
             { model: models.Category, as: 'category', attributes: ['id', 'name'] },
             { model: models.ProductType, as: 'productType', attributes: ['id', 'name'] },

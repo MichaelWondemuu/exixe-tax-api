@@ -1,5 +1,12 @@
 import { HttpError } from '../../../../shared/utils/http-error.js';
 import { models } from '../../../../shared/db/data-source.js';
+import { getUser } from '../../../auth/middleware/user-context.js';
+
+function rowProductId(p) {
+  if (p == null) return undefined;
+  if (p.id != null) return p.id;
+  return typeof p.toJSON === 'function' ? p.toJSON().id : undefined;
+}
 
 export function mergeVariantAttributes(baseAttributes = [], orgAttributes = []) {
   const base = (baseAttributes || []).map((attr) =>
@@ -119,7 +126,10 @@ export class ProductQueryService {
 
   listOrganizationProducts = async (req, queryParams = {}) => {
     const organizationId =
-      req.organizationId || req['organizationId'] || req.user?.organization?.id;
+      req.organizationId ||
+      req['organizationId'] ||
+      getUser(req)?.organization?.id ||
+      req.user?.organization?.id;
     if (!organizationId) {
       throw new HttpError(
         400,
@@ -156,6 +166,24 @@ export class ProductQueryService {
       };
     });
 
+    const mergedIds = new Set(merged.map((p) => rowProductId(p)).filter(Boolean));
+    const overrideExtras = [];
+    for (const o of orgRows) {
+      if (!o.productId || mergedIds.has(o.productId)) continue;
+      const p = o.product;
+      if (!p) continue;
+      const j = p.toJSON ? p.toJSON() : { ...p };
+      overrideExtras.push({
+        ...j,
+        name: o.name ?? j.name,
+        description: o.description ?? j.description,
+        imageUrl: o.imageUrl ?? j.imageUrl,
+        isActive: o.isActive ?? j.isActive,
+        organizationProductId: o.id,
+        variants: mergeVariants(j.variants || [], o.variants || []),
+      });
+    }
+
     const customRows = customs.map((o) => {
       const j = o.toJSON ? o.toJSON() : o;
       return {
@@ -179,12 +207,15 @@ export class ProductQueryService {
       };
     });
 
-    return [...merged, ...customRows];
+    return [...merged, ...overrideExtras, ...customRows];
   };
 
   listOrganizationProductVariants = async (req, orgProductId) => {
     const organizationId =
-      req.organizationId || req['organizationId'] || req.user?.organization?.id;
+      req.organizationId ||
+      req['organizationId'] ||
+      getUser(req)?.organization?.id ||
+      req.user?.organization?.id;
     if (!organizationId) {
       throw new HttpError(
         400,
