@@ -1,6 +1,7 @@
 import { HttpError } from '../../../../shared/utils/http-error.js';
 import { saveImageToAssets } from '../../../../shared/utils/file-upload.util.js';
-import { models } from '../../../../shared/db/data-source.js';
+import { models, sequelize } from '../../../../shared/db/data-source.js';
+import { mergeVariants } from './product.query.js';
 
 function normalizePayload(body = {}) {
   const rawVariants = body.variants;
@@ -31,6 +32,88 @@ function normalizePayload(body = {}) {
         ? Boolean(body.isActive)
         : true,
     variants,
+  };
+}
+
+function normalizeOrgProductUpdateBody(body = {}) {
+  const rawVariants = body.variants;
+  let variants;
+  if (rawVariants === undefined) {
+    variants = undefined;
+  } else if (typeof rawVariants === 'string') {
+    try {
+      const parsed = JSON.parse(rawVariants);
+      variants = Array.isArray(parsed) ? parsed : undefined;
+    } catch {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'variants must be valid JSON array',
+      );
+    }
+  } else if (Array.isArray(rawVariants)) {
+    variants = rawVariants;
+  } else {
+    variants = undefined;
+  }
+
+  return {
+    name:
+      body.name !== undefined
+        ? String(body.name || '').trim() || null
+        : undefined,
+    description:
+      body.description !== undefined
+        ? String(body.description || '').trim() || null
+        : undefined,
+    categoryId: body.categoryId,
+    productTypeId: body.productTypeId,
+    measurementId: body.measurementId,
+    isActive:
+      body.isActive !== undefined && body.isActive !== null
+        ? Boolean(body.isActive)
+        : undefined,
+    imageUrl:
+      body.imageUrl !== undefined
+        ? String(body.imageUrl || '').trim() || null
+        : undefined,
+    variants,
+  };
+}
+
+/** Override upsert returns the `organization_products` row; mirror list fields for clients. */
+function shapeOrganizationProductOverrideResponse(row) {
+  if (!row) return null;
+  const j = row.toJSON ? row.toJSON() : row;
+  return {
+    ...j,
+    organizationProductId: j.id,
+    sourceProductId: j.productId ?? null,
+    isOrganizationOverride: Boolean(j.productId),
+  };
+}
+
+function shapeCustomOrganizationProduct(row) {
+  if (!row) return null;
+  const j = row.toJSON ? row.toJSON() : row;
+  return {
+    id: j.id,
+    isOrganizationCustom: true,
+    sourceProductId: null,
+    organizationId: j.organizationId,
+    name: j.name,
+    description: j.description,
+    imageUrl: j.imageUrl,
+    isActive: j.isActive ?? true,
+    categoryId: j.categoryId ?? null,
+    category: j.category ?? null,
+    productTypeId: j.productTypeId ?? null,
+    productType: j.productType ?? null,
+    measurementId: j.measurementId ?? null,
+    measurement: j.measurement ?? null,
+    createdAt: j.createdAt,
+    updatedAt: j.updatedAt,
+    variants: mergeVariants([], row.variants || []),
   };
 }
 
@@ -96,6 +179,122 @@ export class ProductCommandService {
     const imageUrl = saved?.relativeUrl || null;
     await this.productRepository.update(req, id, { imageUrl });
     return imageUrl;
+  };
+
+  saveOrganizationProductImage = async (req, organizationId, orgProductId, file) => {
+    if (!file?.buffer) return null;
+    const saved = await saveImageToAssets(file, {
+      subDir: 'organization-products',
+      filePrefix: `org-product-${orgProductId}`,
+    });
+    const imageUrl = saved?.relativeUrl || null;
+    const row = await this.organizationProductRepository.getModel().findOne({
+      where: { id: orgProductId, organizationId },
+    });
+    if (row) {
+      await row.update({ imageUrl });
+    }
+    return imageUrl;
+  };
+
+  assertOrganizationVariantSkusAvailable = async (organizationProductId, variants) => {
+    if (!Array.isArray(variants)) return;
+    for (const rawVariant of variants) {
+      const sku = rawVariant?.sku ? String(rawVariant.sku).trim() : '';
+      if (!sku) continue;
+      const global = await this.productRepository.findVariantBySku(sku);
+      if (global) {
+        throw new HttpError(
+          409,
+          'PRODUCT_VARIANT_SKU_EXISTS',
+          `Variant SKU already exists: ${sku}`,
+        );
+      }
+      const orgRow = await models.OrganizationProductVariant.findOne({ where: { sku } });
+      if (
+        orgRow &&
+        (!organizationProductId || orgRow.organizationProductId !== organizationProductId)
+      ) {
+        throw new HttpError(
+          409,
+          'ORG_PRODUCT_VARIANT_SKU_EXISTS',
+          `Variant SKU already exists: ${sku}`,
+        );
+      }
+    }
+  };
+
+  syncOrganizationProductVariants = async (organizationProductId, variants) => {
+    if (!Array.isArray(variants)) return;
+
+    const seenSkus = new Set();
+    for (const rawVariant of variants) {
+      const sku = rawVariant?.sku ? String(rawVariant.sku).trim() : '';
+      if (!sku) {
+        throw new HttpError(400, 'VALIDATION_ERROR', 'variant sku is required');
+      }
+      if (seenSkus.has(sku)) {
+        throw new HttpError(
+          409,
+          'PRODUCT_VARIANT_SKU_DUPLICATE',
+          `Duplicate variant sku in payload: ${sku}`,
+        );
+      }
+      seenSkus.add(sku);
+    }
+
+    const existingVariants = await models.OrganizationProductVariant.findAll({
+      where: { organizationProductId },
+      attributes: ['id'],
+    });
+    const variantIds = existingVariants.map((v) => v.id);
+    if (variantIds.length > 0) {
+      await models.OrganizationProductVariantAttribute.destroy({
+        where: { organizationProductVariantId: variantIds },
+      });
+    }
+
+    await models.OrganizationProductVariant.destroy({
+      where: { organizationProductId },
+    });
+
+    for (const rawVariant of variants) {
+      const name = rawVariant?.name ? String(rawVariant.name).trim() : '';
+      if (!name) {
+        throw new HttpError(400, 'VALIDATION_ERROR', 'variant name is required');
+      }
+
+      const variant = await models.OrganizationProductVariant.create({
+        organizationProductId,
+        productVariantId: null,
+        name,
+        sku: String(rawVariant.sku).trim(),
+        unitValue:
+          rawVariant?.unitValue !== undefined && rawVariant?.unitValue !== null
+            ? Number(rawVariant.unitValue)
+            : 1,
+        sellingPrice:
+          rawVariant?.sellingPrice !== undefined && rawVariant?.sellingPrice !== null
+            ? Number(rawVariant.sellingPrice)
+            : 0,
+        isActive:
+          rawVariant?.isActive !== undefined && rawVariant?.isActive !== null
+            ? Boolean(rawVariant.isActive)
+            : true,
+      });
+
+      const attrs = Array.isArray(rawVariant?.attributes) ? rawVariant.attributes : [];
+      for (const rawAttr of attrs) {
+        const key = rawAttr?.key ? String(rawAttr.key).trim() : '';
+        const value = rawAttr?.value ? String(rawAttr.value).trim() : '';
+        if (!key || !value) continue;
+        await models.OrganizationProductVariantAttribute.create({
+          organizationProductVariantId: variant.id,
+          key,
+          value,
+        });
+      }
+    }
   };
 
   syncVariants = async (productId, variants) => {
@@ -523,38 +722,62 @@ export class ProductCommandService {
     );
     if (existing) {
       await existing.update(clean);
-      return existing;
+      return shapeOrganizationProductOverrideResponse(existing);
     }
-    return this.organizationProductRepository.getModel().create({
+    const created = await this.organizationProductRepository.getModel().create({
       organizationId,
       productId,
       ...clean,
     });
+    return shapeOrganizationProductOverrideResponse(created);
   };
 
-  createOrganizationCustomProduct = async (req, body) => {
+  createOrganizationCustomProduct = async (req, body, file = null) => {
     const organizationId = this.getOrganizationId(req);
-    const name = body?.name ? String(body.name).trim() : '';
-    if (!name) {
+    const payload = normalizePayload(body);
+    if (!payload.name) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'name is required');
     }
-    return this.organizationProductRepository.getModel().create({
+
+    await this.validateReferences(payload);
+
+    if (!Array.isArray(payload.variants) || payload.variants.length === 0) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'At least one variant is required',
+      );
+    }
+
+    await this.assertOrganizationVariantSkusAvailable(null, payload.variants);
+
+    const { variants, ...productData } = payload;
+    const created = await this.organizationProductRepository.getModel().create({
       organizationId,
       productId: null,
-      name,
-      description:
-        body?.description !== undefined
-          ? String(body.description || '').trim() || null
-          : null,
-      imageUrl:
-        body?.imageUrl !== undefined
-          ? String(body.imageUrl || '').trim() || null
-          : null,
-      isActive: body?.isActive !== undefined ? Boolean(body.isActive) : true,
+      categoryId: productData.categoryId,
+      productTypeId: productData.productTypeId,
+      measurementId: productData.measurementId,
+      name: productData.name,
+      description: productData.description,
+      isActive: productData.isActive,
+      imageUrl: null,
     });
+
+    await this.syncOrganizationProductVariants(created.id, variants);
+
+    if (file?.buffer) {
+      await this.saveOrganizationProductImage(req, organizationId, created.id, file);
+    }
+
+    const full = await this.organizationProductRepository.findByIdForOrganization(
+      organizationId,
+      created.id,
+    );
+    return shapeCustomOrganizationProduct(full);
   };
 
-  updateOrganizationProduct = async (req, orgProductId, body) => {
+  updateOrganizationProduct = async (req, orgProductId, body, file = null) => {
     const organizationId = this.getOrganizationId(req);
     const row = await this.organizationProductRepository.getModel().findOne({
       where: { id: orgProductId, organizationId },
@@ -562,28 +785,112 @@ export class ProductCommandService {
     if (!row) {
       throw new HttpError(404, 'NOT_FOUND', 'Organization product not found');
     }
-    const payload = {};
-    if (body?.name !== undefined) {
-      payload.name = String(body.name || '').trim() || null;
-    }
-    if (body?.description !== undefined) {
-      payload.description = String(body.description || '').trim() || null;
-    }
-    if (body?.imageUrl !== undefined) {
-      payload.imageUrl = String(body.imageUrl || '').trim() || null;
-    }
-    if (body?.isActive !== undefined) {
-      payload.isActive = Boolean(body.isActive);
-    }
-    if (Object.keys(payload).length === 0) {
+
+    const normalized = normalizeOrgProductUpdateBody(body);
+    const hasAny =
+      normalized.name !== undefined ||
+      normalized.description !== undefined ||
+      normalized.imageUrl !== undefined ||
+      normalized.isActive !== undefined ||
+      normalized.categoryId !== undefined ||
+      normalized.productTypeId !== undefined ||
+      normalized.measurementId !== undefined ||
+      normalized.variants !== undefined ||
+      Boolean(file?.buffer);
+
+    if (!hasAny) {
       throw new HttpError(
         400,
         'VALIDATION_ERROR',
         'At least one field is required',
       );
     }
-    await row.update(payload);
-    return row;
+
+    const isCustom = !row.productId;
+
+    if (!isCustom) {
+      if (
+        normalized.categoryId !== undefined ||
+        normalized.productTypeId !== undefined ||
+        normalized.measurementId !== undefined ||
+        normalized.variants !== undefined
+      ) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'category, product type, measurement, and variants can only be updated on organization custom products',
+        );
+      }
+    }
+
+    if (isCustom) {
+      const nextCategoryId =
+        normalized.categoryId !== undefined ? normalized.categoryId : row.categoryId;
+      const nextProductTypeId =
+        normalized.productTypeId !== undefined ? normalized.productTypeId : row.productTypeId;
+      const nextMeasurementId =
+        normalized.measurementId !== undefined ? normalized.measurementId : row.measurementId;
+
+      const referencesChanged =
+        normalized.categoryId !== undefined ||
+        normalized.productTypeId !== undefined ||
+        normalized.measurementId !== undefined;
+
+      if (referencesChanged) {
+        if (!nextCategoryId || !nextProductTypeId || !nextMeasurementId) {
+          throw new HttpError(
+            400,
+            'VALIDATION_ERROR',
+            'categoryId, productTypeId, and measurementId are required when updating catalog fields',
+          );
+        }
+        await this.validateReferences({
+          categoryId: nextCategoryId,
+          productTypeId: nextProductTypeId,
+          measurementId: nextMeasurementId,
+        });
+      }
+    }
+
+    const payload = {};
+    if (normalized.name !== undefined) payload.name = normalized.name;
+    if (normalized.description !== undefined) payload.description = normalized.description;
+    if (normalized.imageUrl !== undefined) payload.imageUrl = normalized.imageUrl;
+    if (normalized.isActive !== undefined) payload.isActive = normalized.isActive;
+    if (isCustom) {
+      if (normalized.categoryId !== undefined) payload.categoryId = normalized.categoryId;
+      if (normalized.productTypeId !== undefined) {
+        payload.productTypeId = normalized.productTypeId;
+      }
+      if (normalized.measurementId !== undefined) {
+        payload.measurementId = normalized.measurementId;
+      }
+    }
+
+    if (Object.keys(payload).length > 0) {
+      await row.update(payload);
+    }
+
+    if (isCustom && Array.isArray(normalized.variants)) {
+      await this.assertOrganizationVariantSkusAvailable(row.id, normalized.variants);
+      await this.syncOrganizationProductVariants(row.id, normalized.variants);
+    }
+
+    if (file?.buffer) {
+      await this.saveOrganizationProductImage(req, organizationId, row.id, file);
+    }
+
+    if (isCustom) {
+      const full = await this.organizationProductRepository.findByIdForOrganization(
+        organizationId,
+        row.id,
+      );
+      return shapeCustomOrganizationProduct(full);
+    }
+
+    return this.organizationProductRepository.getModel().findOne({
+      where: { id: row.id, organizationId },
+    });
   };
 
   deleteOrganizationProduct = async (req, orgProductId) => {
@@ -598,6 +905,48 @@ export class ProductCommandService {
     return { message: 'Organization product removed successfully' };
   };
 
+  findOrganizationProductVariantWithAttributes = (variantId) =>
+    models.OrganizationProductVariant.findByPk(variantId, {
+      include: [
+        {
+          model: models.OrganizationProductVariantAttribute,
+          as: 'attributes',
+          attributes: ['id', 'organizationProductVariantId', 'key', 'value'],
+        },
+      ],
+    });
+
+  syncOrganizationProductVariantAttributes = async (
+    organizationProductVariantId,
+    attributes,
+    transaction,
+  ) => {
+    if (!Array.isArray(attributes)) return;
+    await models.OrganizationProductVariantAttribute.destroy({
+      where: { organizationProductVariantId },
+      transaction,
+    });
+    for (const item of attributes) {
+      const key = item?.key ? String(item.key).trim() : '';
+      const value = item?.value ? String(item.value).trim() : '';
+      if (!key || !value) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'Each attribute requires key and value',
+        );
+      }
+      await models.OrganizationProductVariantAttribute.create(
+        {
+          organizationProductVariantId,
+          key,
+          value,
+        },
+        { transaction },
+      );
+    }
+  };
+
   createOrganizationProductVariant = async (req, orgProductId, body) => {
     const organizationId = this.getOrganizationId(req);
     const orgProduct = await this.organizationProductRepository.getModel().findOne({
@@ -606,7 +955,9 @@ export class ProductCommandService {
     if (!orgProduct) {
       throw new HttpError(404, 'NOT_FOUND', 'Organization product not found');
     }
-    const row = await models.OrganizationProductVariant.create({
+
+    const hasAttributes = Array.isArray(body?.attributes);
+    const variantData = {
       organizationProductId: orgProductId,
       productVariantId: body?.productVariantId || null,
       name: body?.name ? String(body.name).trim() : null,
@@ -620,8 +971,27 @@ export class ProductCommandService {
           ? Number(body.sellingPrice)
           : null,
       isActive: body?.isActive !== undefined ? Boolean(body.isActive) : null,
-    });
-    return row;
+    };
+
+    let row;
+    if (hasAttributes) {
+      row = await sequelize.transaction(async (t) => {
+        const created = await models.OrganizationProductVariant.create(
+          variantData,
+          { transaction: t },
+        );
+        await this.syncOrganizationProductVariantAttributes(
+          created.id,
+          body.attributes,
+          t,
+        );
+        return created;
+      });
+    } else {
+      row = await models.OrganizationProductVariant.create(variantData);
+    }
+
+    return this.findOrganizationProductVariantWithAttributes(row.id);
   };
 
   updateOrganizationProductVariant = async (req, orgProductVariantId, body) => {
@@ -654,11 +1024,26 @@ export class ProductCommandService {
         body.sellingPrice == null ? null : Number(body.sellingPrice);
     }
     if (body?.isActive !== undefined) payload.isActive = Boolean(body.isActive);
-    if (Object.keys(payload).length === 0) {
+
+    const hasAttributesUpdate = body?.attributes !== undefined;
+    if (Object.keys(payload).length === 0 && !hasAttributesUpdate) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'At least one field is required');
     }
-    await row.update(payload);
-    return row;
+
+    await sequelize.transaction(async (t) => {
+      if (Object.keys(payload).length > 0) {
+        await row.update(payload, { transaction: t });
+      }
+      if (hasAttributesUpdate) {
+        await this.syncOrganizationProductVariantAttributes(
+          row.id,
+          body.attributes,
+          t,
+        );
+      }
+    });
+
+    return this.findOrganizationProductVariantWithAttributes(row.id);
   };
 
   deleteOrganizationProductVariant = async (req, orgProductVariantId) => {
@@ -687,11 +1072,7 @@ export class ProductCommandService {
     return { message: 'Organization product variant removed successfully' };
   };
 
-  createOrganizationProductVariantAttribute = async (
-    req,
-    orgProductVariantId,
-    body,
-  ) => {
+  assertOrgProductVariantForOrg = async (req, orgProductVariantId) => {
     const organizationId = this.getOrganizationId(req);
     const variant = await models.OrganizationProductVariant.findOne({
       where: { id: orgProductVariantId },
@@ -710,6 +1091,44 @@ export class ProductCommandService {
         'Organization product variant not found',
       );
     }
+    return variant;
+  };
+
+  createOrganizationProductVariantAttribute = async (
+    req,
+    orgProductVariantId,
+    body,
+  ) => {
+    await this.assertOrgProductVariantForOrg(req, orgProductVariantId);
+
+    const bulkItems = body?.attributes;
+    if (Array.isArray(bulkItems) && bulkItems.length > 0) {
+      return sequelize.transaction(async (t) => {
+        const created = [];
+        for (const item of bulkItems) {
+          const key = item?.key ? String(item.key).trim() : '';
+          const value = item?.value ? String(item.value).trim() : '';
+          if (!key || !value) {
+            throw new HttpError(
+              400,
+              'VALIDATION_ERROR',
+              'Each attribute requires key and value',
+            );
+          }
+          const row = await models.OrganizationProductVariantAttribute.create(
+            {
+              organizationProductVariantId: orgProductVariantId,
+              key,
+              value,
+            },
+            { transaction: t },
+          );
+          created.push(row);
+        }
+        return created;
+      });
+    }
+
     const key = body?.key ? String(body.key).trim() : '';
     const value = body?.value ? String(body.value).trim() : '';
     if (!key || !value) {
@@ -723,6 +1142,64 @@ export class ProductCommandService {
       organizationProductVariantId: orgProductVariantId,
       key,
       value,
+    });
+  };
+
+  bulkUpdateOrganizationProductVariantAttributes = async (
+    req,
+    orgProductVariantId,
+    body,
+  ) => {
+    await this.assertOrgProductVariantForOrg(req, orgProductVariantId);
+
+    const items = body?.attributes;
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'attributes array is required',
+      );
+    }
+
+    return sequelize.transaction(async (t) => {
+      const updated = [];
+      for (const item of items) {
+        const row = await models.OrganizationProductVariantAttribute.findOne({
+          where: {
+            id: item.id,
+            organizationProductVariantId: orgProductVariantId,
+          },
+          transaction: t,
+        });
+        if (!row) {
+          throw new HttpError(
+            404,
+            'NOT_FOUND',
+            `Organization product variant attribute not found: ${item.id}`,
+          );
+        }
+        if (item.key !== undefined) {
+          const nextKey = String(item.key || '').trim();
+          if (!nextKey) {
+            throw new HttpError(400, 'VALIDATION_ERROR', 'key cannot be empty');
+          }
+          row.key = nextKey;
+        }
+        if (item.value !== undefined) {
+          const nextValue = String(item.value || '').trim();
+          if (!nextValue) {
+            throw new HttpError(
+              400,
+              'VALIDATION_ERROR',
+              'value cannot be empty',
+            );
+          }
+          row.value = nextValue;
+        }
+        await row.save({ transaction: t });
+        updated.push(row);
+      }
+      return updated;
     });
   };
 

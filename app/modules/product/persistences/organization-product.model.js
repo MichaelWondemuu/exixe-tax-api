@@ -23,6 +23,21 @@ export const OrganizationProduct = (sequelize) => {
         allowNull: true,
         field: 'product_id',
       },
+      categoryId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'category_id',
+      },
+      productTypeId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'product_type_id',
+      },
+      measurementId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'measurement_id',
+      },
       name: {
         type: DataTypes.STRING(255),
         allowNull: true,
@@ -76,6 +91,18 @@ export const OrganizationProduct = (sequelize) => {
     model.belongsTo(models.Organization, {
       foreignKey: 'organizationId',
       as: 'organization',
+    });
+    model.belongsTo(models.Category, {
+      foreignKey: 'categoryId',
+      as: 'category',
+    });
+    model.belongsTo(models.ProductType, {
+      foreignKey: 'productTypeId',
+      as: 'productType',
+    });
+    model.belongsTo(models.Measurement, {
+      foreignKey: 'measurementId',
+      as: 'measurement',
     });
     model.belongsTo(models.Product, {
       foreignKey: 'productId',
