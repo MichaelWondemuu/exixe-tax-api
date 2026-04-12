@@ -50,6 +50,9 @@ export class ProductRecallQueryService {
     if (queryParams.productId) {
       where.productId = queryParams.productId;
     }
+    if (queryParams.severity) {
+      where.severity = queryParams.severity;
+    }
 
     const scoped = await applyScopeFilters(
       req,

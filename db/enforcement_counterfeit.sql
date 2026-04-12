@@ -71,6 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_suspicious_product_reports_product_id ON suspicio
 -- Product recalls (regulator / manufacturing–quality workflow; not tied to counterfeit cases)
 -- If you created product_recalls with source_counterfeit_case_id, drop it:
 -- ALTER TABLE product_recalls DROP COLUMN IF EXISTS source_counterfeit_case_id;
+-- Add severity to existing DB: ALTER TABLE product_recalls ADD COLUMN IF NOT EXISTS severity VARCHAR(32) NOT NULL DEFAULT 'MEDIUM';
 CREATE TABLE IF NOT EXISTS product_recalls (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title VARCHAR(500) NOT NULL,
@@ -79,6 +80,7 @@ CREATE TABLE IF NOT EXISTS product_recalls (
   product_variant_id UUID REFERENCES product_variants (id),
   lot_or_batch_code VARCHAR(128),
   subject_organization_id UUID REFERENCES organizations (id),
+  severity VARCHAR(32) NOT NULL DEFAULT 'MEDIUM',
   status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
   initiated_by_user_id UUID NOT NULL REFERENCES users (id),
   published_at TIMESTAMPTZ,

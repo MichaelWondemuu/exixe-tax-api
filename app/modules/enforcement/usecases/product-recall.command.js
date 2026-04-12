@@ -1,7 +1,10 @@
 import { models } from '../../../shared/db/data-source.js';
 import { HttpError } from '../../../shared/utils/http-error.js';
 import { getUser } from '../../auth/middleware/user-context.js';
-import { PRODUCT_RECALL_STATUS } from '../constants/enforcement.enums.js';
+import {
+  PRODUCT_RECALL_SEVERITY,
+  PRODUCT_RECALL_STATUS,
+} from '../constants/enforcement.enums.js';
 
 /**
  * @param {{
@@ -72,6 +75,7 @@ export class ProductRecallCommandService {
     return models.ProductRecall.create({
       title: body.title,
       description: body.description ?? null,
+      severity: body.severity ?? PRODUCT_RECALL_SEVERITY.MEDIUM,
       productId: body.productId,
       productVariantId: body.productVariantId ?? null,
       lotOrBatchCode: body.lotOrBatchCode?.trim() || null,
@@ -129,6 +133,7 @@ export class ProductRecallCommandService {
     }
     if (body.effectiveFrom !== undefined) patch.effectiveFrom = body.effectiveFrom;
     if (body.effectiveTo !== undefined) patch.effectiveTo = body.effectiveTo;
+    if (body.severity !== undefined) patch.severity = body.severity;
 
     await row.update(patch);
     return this.productRecallRepository.findById(req, id, {

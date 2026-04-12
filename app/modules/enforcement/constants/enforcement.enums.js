@@ -24,3 +24,11 @@ export const PRODUCT_RECALL_STATUS = Object.freeze({
   SUSPENDED: 'SUSPENDED',
   CLOSED: 'CLOSED',
 });
+
+/** Public-health / compliance impact level for a product recall. */
+export const PRODUCT_RECALL_SEVERITY = Object.freeze({
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+});

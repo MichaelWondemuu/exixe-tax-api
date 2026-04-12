@@ -1,5 +1,8 @@
 import { DataTypes } from 'sequelize';
-import { PRODUCT_RECALL_STATUS } from '../constants/enforcement.enums.js';
+import {
+  PRODUCT_RECALL_SEVERITY,
+  PRODUCT_RECALL_STATUS,
+} from '../constants/enforcement.enums.js';
 
 export const ProductRecall = (sequelize) => {
   const model = sequelize.define(
@@ -39,6 +42,12 @@ export const ProductRecall = (sequelize) => {
         type: DataTypes.UUID,
         allowNull: true,
         field: 'subject_organization_id',
+      },
+      severity: {
+        type: DataTypes.ENUM(...Object.values(PRODUCT_RECALL_SEVERITY)),
+        allowNull: false,
+        defaultValue: PRODUCT_RECALL_SEVERITY.MEDIUM,
+        field: 'severity',
       },
       status: {
         type: DataTypes.ENUM(...Object.values(PRODUCT_RECALL_STATUS)),
