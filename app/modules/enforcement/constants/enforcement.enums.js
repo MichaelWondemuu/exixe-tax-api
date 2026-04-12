@@ -16,3 +16,11 @@ export const SUSPICIOUS_PRODUCT_REPORT_STATUS = Object.freeze({
   REVIEWED: 'REVIEWED',
   ARCHIVED: 'ARCHIVED',
 });
+
+/** Product recall lifecycle (regulator-managed). */
+export const PRODUCT_RECALL_STATUS = Object.freeze({
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  SUSPENDED: 'SUSPENDED',
+  CLOSED: 'CLOSED',
+});

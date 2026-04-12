@@ -57,8 +57,9 @@ import { Predeclaration } from '../../modules/predeclaration/persistences/predec
 import { PredeclarationItem } from '../../modules/predeclaration/persistences/predeclaration-item.model.js';
 import { CounterfeitReport } from '../../modules/enforcement/persistences/counterfeit-report.model.js';
 import { SuspiciousProductReport } from '../../modules/enforcement/persistences/suspicious-product-report.model.js';
-import { CounterfeitCaseStampVerification } from '../../modules/enforcement/persistences/counterfeit-case-stamp-verification.model.js';
 import { CounterfeitCase } from '../../modules/enforcement/persistences/counterfeit-case.model.js';
+import { CounterfeitCaseStampVerification } from '../../modules/enforcement/persistences/counterfeit-case-stamp-verification.model.js';
+import { ProductRecall } from '../../modules/enforcement/persistences/product-recall.model.js';
 
 // Initialize all models
 export const TokenRevocationModel = TokenRevocation(sequelize);
@@ -118,9 +119,10 @@ export const PredeclarationModel = Predeclaration(sequelize);
 export const PredeclarationItemModel = PredeclarationItem(sequelize);
 export const CounterfeitReportModel = CounterfeitReport(sequelize);
 export const SuspiciousProductReportModel = SuspiciousProductReport(sequelize);
+export const CounterfeitCaseModel = CounterfeitCase(sequelize);
 export const CounterfeitCaseStampVerificationModel =
   CounterfeitCaseStampVerification(sequelize);
-export const CounterfeitCaseModel = CounterfeitCase(sequelize);
+export const ProductRecallModel = ProductRecall(sequelize);
 
 export const models = {
   TokenRevocation: TokenRevocationModel,
@@ -173,8 +175,9 @@ export const models = {
   PredeclarationItem: PredeclarationItemModel,
   CounterfeitReport: CounterfeitReportModel,
   SuspiciousProductReport: SuspiciousProductReportModel,
-  CounterfeitCaseStampVerification: CounterfeitCaseStampVerificationModel,
   CounterfeitCase: CounterfeitCaseModel,
+  CounterfeitCaseStampVerification: CounterfeitCaseStampVerificationModel,
+  ProductRecall: ProductRecallModel,
 };
 
 Object.values(models).forEach((model) => {

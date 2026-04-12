@@ -10,6 +10,10 @@ import { SuspiciousProductReportController } from './controllers/suspicious-prod
 import { SuspiciousProductReportRepository } from './repository/suspicious-product-report.repository.js';
 import { SuspiciousProductReportCommandService } from './usecases/suspicious-product-report.command.js';
 import { SuspiciousProductReportQueryService } from './usecases/suspicious-product-report.query.js';
+import { ProductRecallRepository } from './repository/product-recall.repository.js';
+import { ProductRecallCommandService } from './usecases/product-recall.command.js';
+import { ProductRecallQueryService } from './usecases/product-recall.query.js';
+import { ProductRecallController } from './controllers/product-recall.controller.js';
 import { buildEnforcementRouter } from './routes/enforcement.routes.js';
 
 export const createEnforcementModule = () => {
@@ -18,6 +22,9 @@ export const createEnforcementModule = () => {
   });
   const suspiciousProductReportRepository = new SuspiciousProductReportRepository({
     Model: models.SuspiciousProductReport,
+  });
+  const productRecallRepository = new ProductRecallRepository({
+    Model: models.ProductRecall,
   });
 
   const counterfeitReportCommandService = new CounterfeitReportCommandService({
@@ -34,6 +41,12 @@ export const createEnforcementModule = () => {
     new SuspiciousProductReportQueryService({
       suspiciousProductReportRepository,
     });
+  const productRecallCommandService = new ProductRecallCommandService({
+    productRecallRepository,
+  });
+  const productRecallQueryService = new ProductRecallQueryService({
+    productRecallRepository,
+  });
   const counterfeitCaseQueryService = new CounterfeitCaseQueryService();
   const counterfeitCaseCommandService = new CounterfeitCaseCommandService({
     counterfeitCaseQueryService,
@@ -49,6 +62,10 @@ export const createEnforcementModule = () => {
     suspiciousProductReportCommandService,
     suspiciousProductReportQueryService,
   });
+  const productRecallController = new ProductRecallController({
+    productRecallCommandService,
+    productRecallQueryService,
+  });
 
   const router = createAsyncRouter();
   router.use(
@@ -56,6 +73,7 @@ export const createEnforcementModule = () => {
     buildEnforcementRouter({
       counterfeitController,
       suspiciousProductReportController,
+      productRecallController,
     }),
   );
 
