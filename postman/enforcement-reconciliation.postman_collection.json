@@ -1,0 +1,593 @@
+{
+  "info": {
+    "name": "Enforcement Reconciliation API",
+    "_postman_id": "8f3f83de-5a0a-42a8-b97f-9a2f7f760001",
+    "description": "Covers counterfeit reports/cases, suspicious product reports, recalls, production & stock records, and reconciliation runs under /v1/enforcement.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/v1" },
+    { "key": "authToken", "value": "" },
+    { "key": "systemAuthToken", "value": "" },
+    { "key": "organizationId", "value": "" },
+    { "key": "facilityId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "productVariantId", "value": "" },
+    { "key": "counterfeitReportId", "value": "" },
+    { "key": "counterfeitCaseId", "value": "" },
+    { "key": "suspiciousProductReportId", "value": "" },
+    { "key": "recallId", "value": "" },
+    { "key": "productionRecordId", "value": "" },
+    { "key": "stockSnapshotId", "value": "" },
+    { "key": "reconciliationRunId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authenticated Operators",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Counterfeit Reports",
+          "item": [
+            {
+              "name": "Create Counterfeit Report",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const id = pm.response.json()?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('counterfeitReportId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/counterfeit-reports",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "counterfeit-reports"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Suspected counterfeit items found in market\",\n  \"productId\": \"{{productId}}\",\n  \"facilityId\": \"{{facilityId}}\",\n  \"stampIdentifier\": \"STAMP-ABC-001\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Counterfeit Case Management",
+          "item": [
+            {
+              "name": "Create Counterfeit Case",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const id = pm.response.json()?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('counterfeitCaseId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/counterfeit-cases",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "counterfeit-cases"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Field case - April market scan\",\n  \"description\": \"Case opened for investigation\",\n  \"sourceCounterfeitReportId\": \"{{counterfeitReportId}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "List Counterfeit Cases",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/counterfeit-cases",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "counterfeit-cases"]
+                }
+              }
+            },
+            {
+              "name": "Get Counterfeit Case By ID",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/counterfeit-cases/{{counterfeitCaseId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "counterfeit-cases", "{{counterfeitCaseId}}"]
+                }
+              }
+            },
+            {
+              "name": "Patch Counterfeit Case",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/counterfeit-cases/{{counterfeitCaseId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "counterfeit-cases", "{{counterfeitCaseId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"description\": \"Inspection ongoing\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suspicious Product Reports",
+          "item": [
+            {
+              "name": "Create Suspicious Product Report",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const id = pm.response.json()?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('suspiciousProductReportId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/suspicious-product-reports",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "suspicious-product-reports"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"description\": \"Suspicious packaging mismatch\",\n  \"facilityId\": \"{{facilityId}}\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Production Records",
+          "item": [
+            {
+              "name": "Create Production Record",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const id = pm.response.json()?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('productionRecordId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/production-records",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "production-records"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"facilityId\": \"{{facilityId}}\",\n  \"productId\": \"{{productId}}\",\n  \"productVariantId\": \"{{productVariantId}}\",\n  \"lotOrBatchCode\": \"LOT-2026-04-A\",\n  \"actualProducedQty\": 1200.5,\n  \"producedAt\": \"2026-04-13T08:30:00.000Z\",\n  \"remarks\": \"Morning batch\"\n}"
+                }
+              }
+            },
+            {
+              "name": "List Production Records",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/production-records?productId={{productId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "production-records"],
+                  "query": [{ "key": "productId", "value": "{{productId}}" }]
+                }
+              }
+            },
+            {
+              "name": "Get Production Record By ID",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/production-records/{{productionRecordId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "production-records", "{{productionRecordId}}"]
+                }
+              }
+            },
+            {
+              "name": "Patch Production Record",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/production-records/{{productionRecordId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "production-records", "{{productionRecordId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"actualProducedQty\": 1185,\n  \"remarks\": \"Adjusted after QA recount\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stock Snapshots",
+          "item": [
+            {
+              "name": "Create Stock Snapshot",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const id = pm.response.json()?.data?.[0]?.id;",
+                      "if (id) pm.collectionVariables.set('stockSnapshotId', id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/stock-snapshots",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "stock-snapshots"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"facilityId\": \"{{facilityId}}\",\n  \"productId\": \"{{productId}}\",\n  \"productVariantId\": \"{{productVariantId}}\",\n  \"lotOrBatchCode\": \"LOT-2026-04-A\",\n  \"quantityOnHand\": 990,\n  \"countedAt\": \"2026-04-13T17:00:00.000Z\",\n  \"remarks\": \"End-of-day physical count\"\n}"
+                }
+              }
+            },
+            {
+              "name": "List Stock Snapshots",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/stock-snapshots?productId={{productId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "stock-snapshots"],
+                  "query": [{ "key": "productId", "value": "{{productId}}" }]
+                }
+              }
+            },
+            {
+              "name": "Get Stock Snapshot By ID",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/stock-snapshots/{{stockSnapshotId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "stock-snapshots", "{{stockSnapshotId}}"]
+                }
+              }
+            },
+            {
+              "name": "Patch Stock Snapshot",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/enforcement/stock-snapshots/{{stockSnapshotId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enforcement", "stock-snapshots", "{{stockSnapshotId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"quantityOnHand\": 1005,\n  \"remarks\": \"Updated after recount\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Active Recall Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/recalls/active?productId={{productId}}&productVariantId={{productVariantId}}&lotOrBatchCode=LOT-2026-04-A",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "recalls", "active"],
+              "query": [
+                { "key": "productId", "value": "{{productId}}" },
+                { "key": "productVariantId", "value": "{{productVariantId}}" },
+                { "key": "lotOrBatchCode", "value": "LOT-2026-04-A" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Enforcement Management",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{systemAuthToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Counterfeit Reports - List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/counterfeit-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "counterfeit-reports"]
+            }
+          }
+        },
+        {
+          "name": "Counterfeit Reports - Get By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/counterfeit-reports/{{counterfeitReportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "counterfeit-reports", "{{counterfeitReportId}}"]
+            }
+          }
+        },
+        {
+          "name": "Counterfeit Reports - Patch Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/counterfeit-reports/{{counterfeitReportId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "counterfeit-reports", "{{counterfeitReportId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REVIEWED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Suspicious Product Reports - List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/suspicious-product-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "suspicious-product-reports"]
+            }
+          }
+        },
+        {
+          "name": "Suspicious Product Reports - Get By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/suspicious-product-reports/{{suspiciousProductReportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "suspicious-product-reports", "{{suspiciousProductReportId}}"]
+            }
+          }
+        },
+        {
+          "name": "Suspicious Product Reports - Patch Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/suspicious-product-reports/{{suspiciousProductReportId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "suspicious-product-reports", "{{suspiciousProductReportId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REVIEWED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Recalls - Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.response.json()?.data?.[0]?.id;",
+                  "if (id) pm.collectionVariables.set('recallId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/recalls",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "recalls"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Safety recall for April batch\",\n  \"description\": \"Potential contamination risk\",\n  \"severity\": \"HIGH\",\n  \"productId\": \"{{productId}}\",\n  \"productVariantId\": \"{{productVariantId}}\",\n  \"lotOrBatchCode\": \"LOT-2026-04-A\",\n  \"effectiveFrom\": \"2026-04-15T00:00:00.000Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Recalls - List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/recalls?severity=HIGH",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "recalls"],
+              "query": [{ "key": "severity", "value": "HIGH" }]
+            }
+          }
+        },
+        {
+          "name": "Recalls - Get By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/recalls/{{recallId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "recalls", "{{recallId}}"]
+            }
+          }
+        },
+        {
+          "name": "Recalls - Patch",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/recalls/{{recallId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "recalls", "{{recallId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Lab confirmation received\",\n  \"severity\": \"CRITICAL\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Recalls - Publish",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/recalls/{{recallId}}/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "recalls", "{{recallId}}", "publish"]
+            }
+          }
+        },
+        {
+          "name": "Recalls - Suspend",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/recalls/{{recallId}}/suspend",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "recalls", "{{recallId}}", "suspend"]
+            }
+          }
+        },
+        {
+          "name": "Recalls - Close",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/recalls/{{recallId}}/close",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "recalls", "{{recallId}}", "close"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Reconciliation",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{systemAuthToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Create Reconciliation Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.response.json()?.data?.[0]?.id;",
+                  "if (id) pm.collectionVariables.set('reconciliationRunId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/reconciliations/runs",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "reconciliations", "runs"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": \"{{organizationId}}\",\n  \"facilityId\": \"{{facilityId}}\",\n  \"periodStart\": \"2026-04-01T00:00:00.000Z\",\n  \"periodEnd\": \"2026-04-30T23:59:59.999Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Reconciliation Runs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/reconciliations/runs?organizationId={{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "reconciliations", "runs"],
+              "query": [{ "key": "organizationId", "value": "{{organizationId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get Reconciliation Run By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/reconciliations/runs/{{reconciliationRunId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "reconciliations", "runs", "{{reconciliationRunId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Reconciliation Run Items",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement/admin/reconciliations/runs/{{reconciliationRunId}}/items?severity=HIGH&limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement", "admin", "reconciliations", "runs", "{{reconciliationRunId}}", "items"],
+              "query": [
+                { "key": "severity", "value": "HIGH" },
+                { "key": "limit", "value": "50" },
+                { "key": "offset", "value": "0" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

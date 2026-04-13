@@ -58,6 +58,15 @@ import { SelfRegStandard } from '../../modules/registration/persistences/self-re
 import { OrgRegistrationApprovalLog } from '../../modules/registration/persistences/self-reg/org-registration-approval-log.model.js';
 import { Predeclaration } from '../../modules/predeclaration/persistences/predeclaration.model.js';
 import { PredeclarationItem } from '../../modules/predeclaration/persistences/predeclaration-item.model.js';
+import { CounterfeitReport } from '../../modules/enforcement/persistences/counterfeit-report.model.js';
+import { SuspiciousProductReport } from '../../modules/enforcement/persistences/suspicious-product-report.model.js';
+import { CounterfeitCase } from '../../modules/enforcement/persistences/counterfeit-case.model.js';
+import { CounterfeitCaseStampVerification } from '../../modules/enforcement/persistences/counterfeit-case-stamp-verification.model.js';
+import { ProductRecall } from '../../modules/enforcement/persistences/product-recall.model.js';
+import { ProductionRecord } from '../../modules/enforcement/persistences/production-record.model.js';
+import { StockSnapshot } from '../../modules/enforcement/persistences/stock-snapshot.model.js';
+import { ReconciliationRun } from '../../modules/enforcement/persistences/reconciliation-run.model.js';
+import { ReconciliationItem } from '../../modules/enforcement/persistences/reconciliation-item.model.js';
 
 // Initialize all models
 export const TokenRevocationModel = TokenRevocation(sequelize);
@@ -118,6 +127,16 @@ export const OrgRegistrationApprovalLogModel =
   OrgRegistrationApprovalLog(sequelize);
 export const PredeclarationModel = Predeclaration(sequelize);
 export const PredeclarationItemModel = PredeclarationItem(sequelize);
+export const CounterfeitReportModel = CounterfeitReport(sequelize);
+export const SuspiciousProductReportModel = SuspiciousProductReport(sequelize);
+export const CounterfeitCaseModel = CounterfeitCase(sequelize);
+export const CounterfeitCaseStampVerificationModel =
+  CounterfeitCaseStampVerification(sequelize);
+export const ProductRecallModel = ProductRecall(sequelize);
+export const ProductionRecordModel = ProductionRecord(sequelize);
+export const StockSnapshotModel = StockSnapshot(sequelize);
+export const ReconciliationRunModel = ReconciliationRun(sequelize);
+export const ReconciliationItemModel = ReconciliationItem(sequelize);
 
 export const models = {
   TokenRevocation: TokenRevocationModel,
@@ -171,6 +190,15 @@ export const models = {
   OrgRegistrationApprovalLog: OrgRegistrationApprovalLogModel,
   Predeclaration: PredeclarationModel,
   PredeclarationItem: PredeclarationItemModel,
+  CounterfeitReport: CounterfeitReportModel,
+  SuspiciousProductReport: SuspiciousProductReportModel,
+  CounterfeitCase: CounterfeitCaseModel,
+  CounterfeitCaseStampVerification: CounterfeitCaseStampVerificationModel,
+  ProductRecall: ProductRecallModel,
+  ProductionRecord: ProductionRecordModel,
+  StockSnapshot: StockSnapshotModel,
+  ReconciliationRun: ReconciliationRunModel,
+  ReconciliationItem: ReconciliationItemModel,
 };
 
 Object.values(models).forEach((model) => {

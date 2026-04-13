@@ -5,6 +5,7 @@ import { createRegistrationModule } from './modules/registration/registration.mo
 import { createProductModule } from './modules/product/product.module.js';
 import { createExciseModule } from './modules/excise/excise.module.js';
 import { createPredeclarationModule } from './modules/predeclaration/predeclaration.module.js';
+import { createEnforcementModule } from './modules/enforcement/enforcement.module.js';
 import { createStampLabelModule } from './modules/stamp-labels/stamp-label.module.js';
 import { createAsyncRouter } from './shared/middleware/exception.handler.js';
 
@@ -23,6 +24,7 @@ export const registerRoutes = (app, baseUrl) => {
   const productModule = createProductModule();
   const exciseModule = createExciseModule();
   const predeclarationModule = createPredeclarationModule();
+  const enforcementModule = createEnforcementModule();
   const stampLabelModule = createStampLabelModule();
   // modules/auth/auth.routes.js
   // #swagger.tags = ['Auth']
@@ -32,6 +34,7 @@ export const registerRoutes = (app, baseUrl) => {
   router.use('/products', productModule.router);
   router.use('/excise', exciseModule.router);
   router.use('/predeclarations', predeclarationModule.router);
+  router.use('/enforcement', enforcementModule.router);
   router.use('/stamps-labels', stampLabelModule.router);
   router.use('/', reportModule.router);
 
