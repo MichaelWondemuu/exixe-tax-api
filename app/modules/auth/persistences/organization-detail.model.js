@@ -38,6 +38,11 @@ export const OrganizationDetail = (sequelize) => {
         field: 'operator_type',
         allowNull: true,
       },
+      organizationType: {
+        type: DataTypes.STRING(32),
+        field: 'organization_type',
+        allowNull: true,
+      },
       operatorLicenseNumber: {
         type: DataTypes.STRING(128),
         field: 'operator_license_number',

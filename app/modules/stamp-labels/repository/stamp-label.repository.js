@@ -78,7 +78,7 @@ const STAMP_LABEL_INCLUDE = [
   {
     model: models.StampLabelTemplate,
     as: 'template',
-    attributes: ['id', 'code', 'version', 'lifecycleStatus', 'resolvedBy'],
+    attributes: ['id', 'code', 'version', 'lifecycleStatus', 'resolvedBy', 'colorCode'],
     required: false,
   },
   {

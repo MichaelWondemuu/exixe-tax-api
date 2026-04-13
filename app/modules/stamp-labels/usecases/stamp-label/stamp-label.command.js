@@ -1320,6 +1320,7 @@ export class StampLabelCommandService {
       packageLevel: String(body.packageLevel || 'UNIT').trim().toUpperCase(),
       qrEnabled: body.qrEnabled !== undefined ? Boolean(body.qrEnabled) : true,
       serialPattern: body.serialPattern ? String(body.serialPattern).trim() : null,
+      colorCode: body.colorCode ? String(body.colorCode).trim() : null,
       labelStructure: body.labelStructure ? String(body.labelStructure) : null,
     });
 
@@ -1396,6 +1397,9 @@ export class StampLabelCommandService {
     if (body.qrEnabled !== undefined) patch.qrEnabled = Boolean(body.qrEnabled);
     if (body.serialPattern !== undefined) {
       patch.serialPattern = body.serialPattern ? String(body.serialPattern).trim() : null;
+    }
+    if (body.colorCode !== undefined) {
+      patch.colorCode = body.colorCode ? String(body.colorCode).trim() : null;
     }
     if (body.labelStructure !== undefined) {
       patch.labelStructure = body.labelStructure ? String(body.labelStructure) : null;

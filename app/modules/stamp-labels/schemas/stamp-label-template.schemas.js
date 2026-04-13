@@ -40,6 +40,7 @@ export const stampLabelTemplateBodySchema = yup.object({
     .default(STAMP_LABEL_PACKAGE_LEVEL.UNIT),
   qrEnabled: yup.boolean().default(true),
   serialPattern: yup.string().trim().max(255).nullable(),
+  colorCode: yup.string().trim().max(32).nullable(),
   labelStructure: yup.string().max(20000).nullable(),
   securityFeatures: yup
     .array()

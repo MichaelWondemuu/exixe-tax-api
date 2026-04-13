@@ -38,6 +38,7 @@ export class OrganizationDetailResponse {
     response.subCity = d.subCity;
     response.tin = d.tin;
     response.operatorType = d.operatorType;
+    response.organizationType = d.organizationType;
     response.operatorLicenseNumber = d.operatorLicenseNumber;
     response.merchantId = d.merchantId;
     response.merchantName = d.merchantName;

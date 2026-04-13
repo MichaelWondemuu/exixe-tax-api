@@ -24,6 +24,7 @@ export const organizationDetailBodySchema = yup.object({
   sellerSubCity: loose(),
   tin: loose(),
   operatorType: loose(),
+  organizationType: loose(),
   operatorLicenseNumber: loose(),
   merchantId: loose(),
   merchantName: loose(),

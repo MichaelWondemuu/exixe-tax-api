@@ -119,6 +119,7 @@ export async function ensureStampLabelSchema() {
         "package_level" VARCHAR(32) NOT NULL DEFAULT 'UNIT',
         "qr_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
         "serial_pattern" VARCHAR(255),
+        "color_code" VARCHAR(32),
         "label_structure" TEXT,
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -133,6 +134,11 @@ export async function ensureStampLabelSchema() {
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+
+    await sequelize.query(`
+      ALTER TABLE "stamp_label_templates"
+      ADD COLUMN IF NOT EXISTS "color_code" VARCHAR(32)
     `);
 
     await sequelize.query(`

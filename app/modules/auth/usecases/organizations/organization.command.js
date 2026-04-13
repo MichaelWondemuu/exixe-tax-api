@@ -79,6 +79,8 @@ function buildDetailPayload(data) {
   if (tin != null) out.tin = tin;
   const operatorType = get('operatorType');
   if (operatorType != null) out.operatorType = operatorType;
+  const organizationType = get('organizationType');
+  if (organizationType != null) out.organizationType = organizationType;
   const operatorLicenseNumber = get('operatorLicenseNumber');
   if (operatorLicenseNumber != null) out.operatorLicenseNumber = operatorLicenseNumber;
   const merchantId = get('merchantId');
@@ -136,6 +138,13 @@ export class OrganizationService {
     this.centralAuth = createCentralAuthService();
   }
 
+  async ensureOrganizationDetailSchema(models) {
+    await models.OrganizationDetail.sequelize.query(`
+      ALTER TABLE "organization_details"
+      ADD COLUMN IF NOT EXISTS "organization_type" VARCHAR(32)
+    `);
+  }
+
   listOrganizations = async (req, queryParams) => {
     const { models } = await import('../../../../shared/db/data-source.js');
     const options = {
@@ -184,6 +193,7 @@ export class OrganizationService {
       );
     }
     const { models } = await import('../../../../shared/db/data-source.js');
+    await this.ensureOrganizationDetailSchema(models);
     const detail = await models.OrganizationDetail.findOne({
       where: { organizationId },
     });
@@ -203,6 +213,7 @@ export class OrganizationService {
       );
     }
     const { models } = await import('../../../../shared/db/data-source.js');
+    await this.ensureOrganizationDetailSchema(models);
     const existing = await models.OrganizationDetail.findOne({
       where: { organizationId },
     });
@@ -234,6 +245,7 @@ export class OrganizationService {
       );
     }
     const { models } = await import('../../../../shared/db/data-source.js');
+    await this.ensureOrganizationDetailSchema(models);
     let detail = await models.OrganizationDetail.findOne({
       where: { organizationId },
     });
@@ -360,6 +372,7 @@ export class OrganizationService {
 
     // Get models
     const { models } = await import('../../../../shared/db/data-source.js');
+    await this.ensureOrganizationDetailSchema(models);
 
     // Check if tenantId is provided and already exists (if tenantId is unique)
     if (data.tenantId) {
@@ -640,6 +653,7 @@ export class OrganizationService {
 
     // Get models
     const { models } = await import('../../../../shared/db/data-source.js');
+    await this.ensureOrganizationDetailSchema(models);
 
     const updateData = {};
     if (data.name !== undefined) updateData.name = data.name;
