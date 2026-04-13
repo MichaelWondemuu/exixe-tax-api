@@ -25,6 +25,36 @@ export const ExciseStampRequest = (sequelize) => {
         allowNull: false,
         field: 'facility_id',
       },
+      productId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'product_id',
+      },
+      productName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'product_name',
+      },
+      variantId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'variant_id',
+      },
+      variantName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'variant_name',
+      },
+      uomId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'uom_id',
+      },
+      uomName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'uom_name',
+      },
       goodsCategory: {
         type: DataTypes.STRING(128),
         allowNull: false,
@@ -162,6 +192,18 @@ export const ExciseStampRequest = (sequelize) => {
     model.belongsTo(models.ExciseFacility, {
       foreignKey: 'facilityId',
       as: 'facility',
+    });
+    model.belongsTo(models.Product, {
+      foreignKey: 'productId',
+      as: 'product',
+    });
+    model.belongsTo(models.ProductVariant, {
+      foreignKey: 'variantId',
+      as: 'variant',
+    });
+    model.belongsTo(models.Measurement, {
+      foreignKey: 'uomId',
+      as: 'uom',
     });
   };
 

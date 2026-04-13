@@ -5,6 +5,7 @@ import { ExciseStampRequestRepository } from './repository/stamp-request.reposit
 import { ExciseStampForecastRepository } from './repository/forecast.repository.js';
 import { ExciseStampStockEventRepository } from './repository/stamp-stock-event.repository.js';
 import { ExciseStampVerificationRepository } from './repository/stamp-verification.repository.js';
+import { ExciseConfigRepository } from './repository/config.repository.js';
 import { ExciseCommandService } from './usecases/excise/excise.command.js';
 import { ExciseQueryService } from './usecases/excise/excise.query.js';
 import { buildExciseRouter } from './routes/excise.routes.js';
@@ -26,6 +27,9 @@ import { StampStockEventController } from './controllers/stamp-stock-event.contr
 import { StampVerificationQueryService } from './usecases/stamp-verification/stamp-verification.query.js';
 import { StampVerificationCommandService } from './usecases/stamp-verification/stamp-verification.command.js';
 import { StampVerificationController } from './controllers/stamp-verification.controller.js';
+import { ExciseConfigQueryService } from './usecases/config/config.query.js';
+import { ExciseConfigCommandService } from './usecases/config/config.command.js';
+import { ExciseConfigController } from './controllers/config.controller.js';
 
 export const createExciseModule = () => {
   const facilityRepository = new ExciseFacilityRepository();
@@ -34,6 +38,7 @@ export const createExciseModule = () => {
   const forecastRepository = new ExciseStampForecastRepository();
   const stockEventRepository = new ExciseStampStockEventRepository();
   const verificationRepository = new ExciseStampVerificationRepository();
+  const configRepository = new ExciseConfigRepository();
 
   const exciseCommandService = new ExciseCommandService({
     facilityRepository,
@@ -42,6 +47,7 @@ export const createExciseModule = () => {
     forecastRepository,
     stockEventRepository,
     verificationRepository,
+    configRepository,
   });
   const exciseQueryService = new ExciseQueryService({
     facilityRepository,
@@ -50,6 +56,7 @@ export const createExciseModule = () => {
     forecastRepository,
     stockEventRepository,
     verificationRepository,
+    configRepository,
   });
 
   const facilityQueryService = new FacilityQueryService({ exciseQueryService });
@@ -72,6 +79,10 @@ export const createExciseModule = () => {
     exciseQueryService,
   });
   const stampVerificationCommandService = new StampVerificationCommandService({
+    exciseCommandService,
+  });
+  const exciseConfigQueryService = new ExciseConfigQueryService({ exciseQueryService });
+  const exciseConfigCommandService = new ExciseConfigCommandService({
     exciseCommandService,
   });
 
@@ -99,6 +110,10 @@ export const createExciseModule = () => {
     stampVerificationQueryService,
     stampVerificationCommandService,
   });
+  const exciseConfigController = new ExciseConfigController({
+    exciseConfigQueryService,
+    exciseConfigCommandService,
+  });
 
   const router = createAsyncRouter();
   router.use(
@@ -110,6 +125,7 @@ export const createExciseModule = () => {
       forecastController,
       stampStockEventController,
       stampVerificationController,
+      exciseConfigController,
     }),
   );
 

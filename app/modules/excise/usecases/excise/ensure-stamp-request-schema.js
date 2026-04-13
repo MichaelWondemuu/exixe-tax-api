@@ -14,6 +14,12 @@ export async function ensureStampRequestSchema() {
   stampSchemaReadyPromise = (async () => {
     await sequelize.query(`
       ALTER TABLE "excise_stamp_requests"
+      ADD COLUMN IF NOT EXISTS "product_id" UUID,
+      ADD COLUMN IF NOT EXISTS "product_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "variant_id" UUID,
+      ADD COLUMN IF NOT EXISTS "variant_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "uom_id" UUID,
+      ADD COLUMN IF NOT EXISTS "uom_name" VARCHAR(255),
       ADD COLUMN IF NOT EXISTS "stamp_fee_amount" DECIMAL(18,2),
       ADD COLUMN IF NOT EXISTS "stamp_fee_currency" VARCHAR(8),
       ADD COLUMN IF NOT EXISTS "payment_status" VARCHAR(32) DEFAULT 'UNPAID',

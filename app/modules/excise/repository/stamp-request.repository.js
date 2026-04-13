@@ -6,6 +6,26 @@ const STAMP_REQUEST_INCLUDE = [
     model: models.ExciseFacility,
     as: 'facility',
   },
+  {
+    model: models.Product,
+    as: 'product',
+    attributes: ['id', 'name', 'categoryId', 'productTypeId', 'measurementId'],
+    include: [
+      { model: models.Category, as: 'category', attributes: ['id', 'name', 'code'] },
+      { model: models.ProductType, as: 'productType', attributes: ['id', 'name'] },
+      { model: models.Measurement, as: 'measurement', attributes: ['id', 'name', 'shortForm'] },
+    ],
+  },
+  {
+    model: models.ProductVariant,
+    as: 'variant',
+    attributes: ['id', 'productId', 'name', 'sku', 'unitValue'],
+  },
+  {
+    model: models.Measurement,
+    as: 'uom',
+    attributes: ['id', 'name', 'shortForm'],
+  },
 ];
 
 export class ExciseStampRequestRepository extends BaseRepository {

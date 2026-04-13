@@ -6,6 +6,7 @@ import { buildStampRequestRouter } from './stamp-request.routes.js';
 import { buildForecastRouter } from './forecast.routes.js';
 import { buildStampStockEventRouter } from './stamp-stock-event.routes.js';
 import { buildStampVerificationRouter } from './stamp-verification.routes.js';
+import { buildExciseConfigRouter } from './config.routes.js';
 
 /**
  * @param {{
@@ -15,6 +16,7 @@ import { buildStampVerificationRouter } from './stamp-verification.routes.js';
  *  forecastController: import('../controllers/forecast.controller.js').ForecastController;
  *  stampStockEventController: import('../controllers/stamp-stock-event.controller.js').StampStockEventController;
  *  stampVerificationController: import('../controllers/stamp-verification.controller.js').StampVerificationController;
+ *  exciseConfigController: import('../controllers/config.controller.js').ExciseConfigController;
  * }} deps
  */
 export const buildExciseRouter = (deps) => {
@@ -26,6 +28,7 @@ export const buildExciseRouter = (deps) => {
     forecastController,
     stampStockEventController,
     stampVerificationController,
+    exciseConfigController,
   } = deps;
 
   const { publicRouter, router: stampVerificationRouter, adminRouter: stampVerificationAdminRouter } =
@@ -36,6 +39,9 @@ export const buildExciseRouter = (deps) => {
     buildForecastRouter({ forecastController });
   const { router: stockEventRouter, adminRouter: stockEventAdminRouter } =
     buildStampStockEventRouter({ stampStockEventController });
+  const { adminRouter: configAdminRouter } = buildExciseConfigRouter({
+    exciseConfigController,
+  });
 
   router.use('/', publicRouter);
 
@@ -53,6 +59,7 @@ export const buildExciseRouter = (deps) => {
   adminRouter.use('/', forecastAdminRouter);
   adminRouter.use('/', stockEventAdminRouter);
   adminRouter.use('/', stampVerificationAdminRouter);
+  adminRouter.use('/', configAdminRouter);
   router.use('/admin', adminRouter);
 
   return router;

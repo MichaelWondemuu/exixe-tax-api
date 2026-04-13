@@ -14,6 +14,8 @@ import { StampRequestResponse } from '../stamp-request/stamp-request.response.js
 import { StampStockEventResponse } from '../stamp-stock-event/stamp-stock-event.response.js';
 import { StampVerificationResponse } from '../stamp-verification/stamp-verification.response.js';
 import { ensureStampRequestSchema } from './ensure-stamp-request-schema.js';
+import { ensureExciseConfigSchema } from './ensure-excise-config-schema.js';
+import { ExciseConfigResponse } from '../config/config.response.js';
 
 let forecastSchemaReadyPromise = null;
 let stockEventSchemaReadyPromise = null;
@@ -130,6 +132,7 @@ export class ExciseQueryService {
    *  forecastRepository: import('../../repository/forecast.repository.js').ExciseStampForecastRepository;
    *  stockEventRepository: import('../../repository/stamp-stock-event.repository.js').ExciseStampStockEventRepository;
    *  verificationRepository: import('../../repository/stamp-verification.repository.js').ExciseStampVerificationRepository;
+   *  configRepository: import('../../repository/config.repository.js').ExciseConfigRepository;
    * }} deps
    */
   constructor({
@@ -139,6 +142,7 @@ export class ExciseQueryService {
     forecastRepository,
     stockEventRepository,
     verificationRepository,
+    configRepository,
   }) {
     this.facilityRepository = facilityRepository;
     this.deliveryNoteRepository = deliveryNoteRepository;
@@ -146,7 +150,29 @@ export class ExciseQueryService {
     this.forecastRepository = forecastRepository;
     this.stockEventRepository = stockEventRepository;
     this.verificationRepository = verificationRepository;
+    this.configRepository = configRepository;
   }
+
+  listConfigs = async (req, query) => {
+    await ensureExciseConfigSchema();
+    const result = await this.configRepository.findAll(
+      req,
+      {
+        order: [['key', 'ASC']],
+      },
+      query,
+    );
+    return mapExciseDataResponse(result, ExciseConfigResponse.toResponse);
+  };
+
+  getConfigByKey = async (req, key) => {
+    await ensureExciseConfigSchema();
+    const entity = await this.configRepository.findOne(req, { key });
+    if (!entity) {
+      throw new HttpError(404, 'NOT_FOUND', 'Excise config not found');
+    }
+    return ExciseConfigResponse.toResponse(entity);
+  };
 
   listFacilities = async (req, query) => {
     const result = await this.facilityRepository.findAllDetailed(req, query);

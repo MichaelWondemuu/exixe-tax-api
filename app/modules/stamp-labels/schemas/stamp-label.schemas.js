@@ -24,7 +24,7 @@ export const generateStampLabelsBodySchema = yup.object({
   count: yup.number().integer().min(1).max(5000).default(1),
   stampRequestId: yup.string().uuid().required(),
   uidPrefix: yup.string().trim().max(32).nullable(),
-  digitalLinkBase: yup.string().trim().url().nullable(),
+  digitalLinkBase: yup.string().trim().nullable(),
   codeFormat: yup
     .string()
     .oneOf(Object.values(STAMP_LABEL_CODE_FORMAT))

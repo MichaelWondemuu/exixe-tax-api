@@ -43,6 +43,7 @@ import { ExciseStampRequest } from '../../modules/excise/persistences/stamp-requ
 import { ExciseStampForecast } from '../../modules/excise/persistences/forecast.model.js';
 import { ExciseStampStockEvent } from '../../modules/excise/persistences/stamp-stock-event.model.js';
 import { ExciseStampVerification } from '../../modules/excise/persistences/stamp-verification.model.js';
+import { ExciseConfig } from '../../modules/excise/persistences/config.model.js';
 import { StampLabel } from '../../modules/stamp-labels/persistences/stamp-label.model.js';
 import { StampLabelEvent } from '../../modules/stamp-labels/persistences/stamp-label-event.model.js';
 import { OrgRegistrationApplication } from '../../modules/registration/persistences/org-registration-application.model.js';
@@ -99,6 +100,7 @@ export const ExciseStampRequestModel = ExciseStampRequest(sequelize);
 export const ExciseStampForecastModel = ExciseStampForecast(sequelize);
 export const ExciseStampStockEventModel = ExciseStampStockEvent(sequelize);
 export const ExciseStampVerificationModel = ExciseStampVerification(sequelize);
+export const ExciseConfigModel = ExciseConfig(sequelize);
 export const StampLabelModel = StampLabel(sequelize);
 export const StampLabelEventModel = StampLabelEvent(sequelize);
 export const OrgRegistrationApplicationModel =
@@ -154,6 +156,7 @@ export const models = {
   ExciseStampForecast: ExciseStampForecastModel,
   ExciseStampStockEvent: ExciseStampStockEventModel,
   ExciseStampVerification: ExciseStampVerificationModel,
+  ExciseConfig: ExciseConfigModel,
   StampLabel: StampLabelModel,
   StampLabelEvent: StampLabelEventModel,
   OrgRegistrationApplication: OrgRegistrationApplicationModel,

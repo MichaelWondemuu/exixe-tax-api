@@ -152,6 +152,13 @@ export class StampRequestResponse {
     BaseResponse.extendResponse(e, response);
     response.requestNumber = e.requestNumber;
     response.facilityId = e.facilityId;
+    response.productId = e.productId ?? null;
+    response.productName = e.productName ?? e.product?.name ?? null;
+    response.variantId = e.variantId ?? null;
+    response.variantName = e.variantName ?? e.variant?.name ?? null;
+    response.uomId = e.uomId ?? e.uom?.id ?? null;
+    response.uomName =
+      e.uomName ?? e.uom?.shortForm ?? e.uom?.name ?? e.product?.measurement?.shortForm ?? null;
     response.goodsCategory = e.goodsCategory;
     response.goodsDescription = e.goodsDescription;
     response.quantity = e.quantity;
@@ -190,6 +197,24 @@ export class StampRequestResponse {
     if (e.facility) {
       response.facility = FacilityResponse.toBrief(e.facility);
     }
+    if (e.product) {
+      response.product = {
+        id: e.product.id,
+        name: e.product.name,
+        category: e.product.category ?? null,
+        productType: e.product.productType ?? null,
+        measurement: e.product.measurement ?? null,
+      };
+    }
+    if (e.variant) {
+      response.variant = {
+        id: e.variant.id,
+        productId: e.variant.productId,
+        name: e.variant.name,
+        sku: e.variant.sku,
+        unitValue: e.variant.unitValue,
+      };
+    }
     return response;
   }
 
@@ -200,6 +225,12 @@ export class StampRequestResponse {
     return {
       id: e.id,
       requestNumber: e.requestNumber,
+      productId: e.productId ?? null,
+      productName: e.productName ?? null,
+      variantId: e.variantId ?? null,
+      variantName: e.variantName ?? null,
+      uomId: e.uomId ?? null,
+      uomName: e.uomName ?? null,
       quantity: e.quantity,
       generatedQuantity:
         e.generatedQuantity !== undefined && e.generatedQuantity !== null

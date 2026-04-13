@@ -9,6 +9,73 @@ import { DataTypes } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../../../shared/logger/logger.js';
 
+const EXCISE_PRODUCT_CATEGORIES = [
+  {
+    name: 'Alcoholic Beverages',
+    code: 'EXC_ALCOHOLIC_BEVERAGES',
+    description:
+      'Excisable alcoholic products including spirits, beer, wine, and ready-to-drink beverages.',
+    color: '#9B59B6',
+  },
+  {
+    name: 'Tobacco Products',
+    code: 'EXC_TOBACCO_PRODUCTS',
+    description:
+      'Excisable tobacco products including cigarettes, cigars, roll-your-own, and smokeless tobacco.',
+    color: '#E67E22',
+  },
+  {
+    name: 'Non-Alcoholic Beverages',
+    code: 'EXC_NON_ALCOHOLIC_BEVERAGES',
+    description:
+      'Excisable non-alcoholic beverages including bottled water, carbonated and sugar-sweetened drinks.',
+    color: '#3498DB',
+  },
+];
+
+const EXCISE_PRODUCT_TYPES = ['Luxury', 'Premium', 'Standard'];
+
+async function seedExciseProductLookups() {
+  if (!models.Category || !models.ProductType) {
+    return;
+  }
+
+  for (const category of EXCISE_PRODUCT_CATEGORIES) {
+    const existingByCode = await models.Category.findOne({
+      where: { code: category.code },
+    });
+    if (!existingByCode) {
+      await models.Category.create({
+        id: uuidv4(),
+        name: category.name,
+        code: category.code,
+        status: 'ACTIVE',
+        color: category.color,
+        description: category.description,
+      });
+    } else {
+      await existingByCode.update({
+        name: category.name,
+        status: 'ACTIVE',
+        color: category.color,
+        description: category.description,
+      });
+    }
+  }
+
+  for (const productTypeName of EXCISE_PRODUCT_TYPES) {
+    const existingType = await models.ProductType.findOne({
+      where: { name: productTypeName },
+    });
+    if (!existingType) {
+      await models.ProductType.create({
+        id: uuidv4(),
+        name: productTypeName,
+      });
+    }
+  }
+}
+
 /**
  * Seed the database with initial data
  * @returns {Promise<void>}
@@ -181,6 +248,8 @@ export async function seed() {
       }
       orgId = org.id;
     }
+
+    await seedExciseProductLookups();
 
     // Check or create permissions
     const permissions = [
