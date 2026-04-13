@@ -39,24 +39,17 @@ const bootstrap = async () => {
     }
     logger.info('Database connected successfully');
 
-    // if (env.nodeEnv === 'development') {
-    //   try {
-        // logger.info('Development mode: Syncing database...');
-        await syncDatabase({
-          force: true,
-          alter: {
-            // drop: true,
-          },
-        });
-        // logger.info('Database synced successfully');
-    //   } catch (err) {
-    //     logger.error('Failed to sync database', {
-    //       error: err.message,
-    //       stack: err.stack,
-    //     });
-    //     // Don't exit on sync error, just log it
-    //   }
-    // }
+    if (env.dbSync) {
+      logger.info('DB sync enabled: syncing schema (alter)…');
+      const ok = await syncDatabase({ alter: true });
+      if (ok) {
+        logger.info('Database sync finished');
+      } else {
+        logger.warn('Database sync reported issues; check logs above');
+      }
+    } else {
+      logger.info('DB sync skipped (set DBSYNC=true to enable)');
+    }
   } catch (err) {
     logger.error('Failed to connect to database', { error: err.message });
     process.exit(1);
@@ -65,7 +58,7 @@ const bootstrap = async () => {
   // Create Express app
   const app = express();
 
-  await seed();
+  // await seed();
   app.disable('x-powered-by');
   app.use(
     helmet({
@@ -77,10 +70,7 @@ const bootstrap = async () => {
     new Set(
       env.nodeEnv === 'production'
         ? ['https://invoice.cheche.et', 'https://invoice-test.cheche.et']
-        : [
-            'http://localhost:3000',
-            'http://localhost:3001'
-          ],
+        : ['http://localhost:3000', 'http://localhost:3001'],
     ),
   );
 

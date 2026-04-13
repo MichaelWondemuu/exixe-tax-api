@@ -1,4 +1,5 @@
 import { DataTypes } from 'sequelize';
+import { getBaseFields, getBaseOptions } from '../../../shared/db/base.model.js';
 import {
   STAMP_VERIFICATION_ACTOR_TYPE,
   STAMP_VERIFICATION_CHANNEL,
@@ -6,24 +7,19 @@ import {
 } from '../constants/excise.enums.js';
 
 export const ExciseStampVerification = (sequelize) => {
+  const base = getBaseFields();
   const model = sequelize.define(
     'ExciseStampVerification',
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+      ...base,
+      organizationId: {
+        ...base.organizationId,
+        allowNull: true,
       },
       verificationNumber: {
         type: DataTypes.STRING(64),
         allowNull: false,
-        unique: true,
         field: 'verification_number',
-      },
-      organizationId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        field: 'organization_id',
       },
       facilityId: {
         type: DataTypes.UUID,
@@ -88,26 +84,16 @@ export const ExciseStampVerification = (sequelize) => {
         defaultValue: DataTypes.NOW,
         field: 'verified_at',
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'created_at',
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'updated_at',
-      },
     },
     {
-      sequelize,
-      tableName: 'excise_stamp_verifications',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      underscored: true,
+      ...getBaseOptions('excise_stamp_verifications'),
+      indexes: [
+        {
+          unique: true,
+          fields: [{ name: 'verification_number' }],
+          name: 'unique_excise_stamp_verification_number',
+        },
+      ],
     },
   );
 

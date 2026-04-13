@@ -30,16 +30,16 @@ export const getBaseFields = () => ({
     allowNull: false,
     defaultValue: DataTypes.NOW,
   },
-  // createdBy: {
-  //   type: DataTypes.UUID,
-  //   field: 'created_by',
-  //   allowNull: true,
-  // },
-  // updatedBy: {
-  //   type: DataTypes.UUID,
-  //   field: 'updated_by',
-  //   allowNull: true,
-  // },
+  createdBy: {
+    type: DataTypes.UUID,
+    field: 'created_by',
+    allowNull: true,
+  },
+  updatedBy: {
+    type: DataTypes.UUID,
+    field: 'updated_by',
+    allowNull: true,
+  },
   updatedAt: {
     type: DataTypes.DATE,
     field: 'updated_at',

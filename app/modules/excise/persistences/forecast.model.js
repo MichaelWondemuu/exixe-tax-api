@@ -1,25 +1,24 @@
 import { DataTypes } from 'sequelize';
+import {
+  getBaseFields,
+  getBaseOptions,
+} from '../../../shared/db/base.model.js';
 import { FORECAST_STATUS } from '../constants/excise.enums.js';
 
 export const ExciseStampForecast = (sequelize) => {
+  const base = getBaseFields();
   const model = sequelize.define(
     'ExciseStampForecast',
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+      ...base,
+      organizationId: {
+        ...base.organizationId,
+        allowNull: true,
       },
       forecastNumber: {
         type: DataTypes.STRING(64),
         allowNull: false,
-        unique: true,
         field: 'forecast_number',
-      },
-      organizationId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        field: 'organization_id',
       },
       facilityId: {
         type: DataTypes.UUID,
@@ -53,26 +52,16 @@ export const ExciseStampForecast = (sequelize) => {
         allowNull: true,
         field: 'submitted_at',
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'created_at',
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'updated_at',
-      },
     },
     {
-      sequelize,
-      tableName: 'excise_stamp_forecasts',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      underscored: true,
+      ...getBaseOptions('excise_stamp_forecasts'),
+      indexes: [
+        {
+          unique: true,
+          fields: [{ name: 'forecast_number' }],
+          name: 'unique_excise_stamp_forecast_number',
+        },
+      ],
     },
   );
 

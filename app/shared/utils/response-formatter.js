@@ -1,3 +1,10 @@
+import { BaseResponse } from '../responses/base.response.js';
+
+export function enrichResponseDataItems(items) {
+  if (!Array.isArray(items)) return items;
+  return items.map((item) => BaseResponse.enrichEntity(item));
+}
+
 /**
  * Data Response Format
  * Standard format for API responses with count and data
@@ -40,30 +47,34 @@ export class DataResponseFormat {
 export function formatResponse(data, statusCode = 200) {
   // If already a DataResponseFormat, return as is
   if (data instanceof DataResponseFormat) {
+    const enriched = new DataResponseFormat(
+      enrichResponseDataItems(data.data),
+      data.count,
+    );
     return {
       success: statusCode >= 200 && statusCode < 300,
       statusCode,
-      ...data
+      ...enriched,
     };
   }
 
   // If array, wrap in DataResponseFormat
   if (Array.isArray(data)) {
-    const formatted = DataResponseFormat.from(data);
+    const formatted = DataResponseFormat.from(enrichResponseDataItems(data));
     return {
       success: statusCode >= 200 && statusCode < 300,
       statusCode,
-      ...formatted
+      ...formatted,
     };
   }
 
   // If single object, wrap in DataResponseFormat
   if (data && typeof data === 'object') {
-    const formatted = DataResponseFormat.from(data);
+    const formatted = DataResponseFormat.from(BaseResponse.enrichEntity(data));
     return {
       success: statusCode >= 200 && statusCode < 300,
       statusCode,
-      ...formatted
+      ...formatted,
     };
   }
 

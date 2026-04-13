@@ -10,6 +10,8 @@
     { "key": "apiPrefix", "value": "/v1" },
     { "key": "token", "value": "" },
     { "key": "organizationId", "value": "" },
+    { "key": "facilityId", "value": "" },
+    { "key": "stampRequestId", "value": "" },
     { "key": "productId", "value": "" },
     { "key": "stampLabelId", "value": "" },
     { "key": "stampUid", "value": "" }
@@ -47,6 +49,127 @@
       ]
     },
     {
+      "name": "Excise - Create Facility",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Stamp Facility Addis\",\n  \"facilityType\": \"FACTORY\",\n  \"licenseNumber\": \"FAC-ET-2026-001\",\n  \"region\": \"Addis Ababa\",\n  \"zone\": \"Arada\",\n  \"woreda\": \"01\",\n  \"city\": \"Addis Ababa\",\n  \"addressLine1\": \"Mexico Square Industrial Area\",\n  \"addressLine2\": \"Block B\",\n  \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/excise/facilities",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "excise", "facilities"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const row = res?.data?.[0] || res?.data;",
+              "if (row?.id) pm.collectionVariables.set('facilityId', row.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Excise - Create Stamp Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"facilityId\": \"{{facilityId}}\",\n  \"goodsCategory\": \"Beverage\",\n  \"goodsDescription\": \"Excisable Beverage 500ml\",\n  \"quantity\": 1000,\n  \"requiredByDate\": \"2026-08-01T08:00:00.000Z\",\n  \"plannedProductionOrImportDate\": \"2026-08-05T08:00:00.000Z\",\n  \"attachmentUrl\": \"https://example.com/supporting-doc.pdf\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/excise/stamp-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "excise", "stamp-requests"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "const row = res?.data?.[0] || res?.data;",
+              "if (row?.id) pm.collectionVariables.set('stampRequestId', row.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Excise - Add Stamp Request Payment",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stampFeeAmount\": 25000,\n  \"stampFeeCurrency\": \"ETB\",\n  \"paymentReference\": \"PAY-ET-2026-7788\",\n  \"paymentProofUrl\": \"https://example.com/payment-proof.pdf\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/excise/stamp-requests/{{stampRequestId}}/payment",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "excise", "stamp-requests", "{{stampRequestId}}", "payment"]
+        }
+      }
+    },
+    {
+      "name": "Excise - Submit Stamp Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/excise/stamp-requests/{{stampRequestId}}/submit",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "excise", "stamp-requests", "{{stampRequestId}}", "submit"]
+        }
+      }
+    },
+    {
+      "name": "Excise Admin - Approve Stamp Request",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "x-organization-id", "value": "{{organizationId}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"decision\": \"APPROVED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{apiPrefix}}/excise/admin/stamp-requests/{{stampRequestId}}/review",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiPrefix}}", "excise", "admin", "stamp-requests", "{{stampRequestId}}", "review"]
+        }
+      }
+    },
+    {
       "name": "Stamps & Labels - Generate",
       "request": {
         "method": "POST",
@@ -57,7 +180,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"count\": 1,\n  \"uidPrefix\": \"ET-EXS\",\n  \"digitalLinkBase\": \"https://verify.ers.gov.et/stamps\",\n  \"codeFormat\": \"GS1_DATAMATRIX\",\n  \"operatorType\": \"MANUFACTURER\",\n  \"operatorName\": \"Abebe Beverages PLC\",\n  \"operatorTin\": \"0012345678\",\n  \"operatorLicenseNumber\": \"ET-EXC-2026-0001\",\n  \"ethiopiaRevenueOffice\": \"Addis Ababa Large Taxpayers Office\",\n  \"productId\": \"{{productId}}\",\n  \"productName\": \"Excisable Beverage 500ml\",\n  \"packageLevel\": \"UNIT\",\n  \"batchNumber\": \"BATCH-APR-2026-01\",\n  \"productionDate\": \"2026-04-09T07:00:00.000Z\",\n  \"forecastReference\": \"FORECAST-2026-APR\",\n  \"forecastSubmittedAt\": \"2026-01-01T08:00:00.000Z\",\n  \"requiresSixtyDayForecast\": true,\n  \"isImported\": false,\n  \"metadata\": {\n    \"country\": \"ET\",\n    \"standard\": \"WHO-FCTC-ITP\"\n  }\n}"
+          "raw": "{\n  \"count\": 1,\n  \"stampRequestId\": \"{{stampRequestId}}\",\n  \"uidPrefix\": \"ET-EXS\",\n  \"digitalLinkBase\": \"https://verify.ers.gov.et/stamps\",\n  \"codeFormat\": \"GS1_DATAMATRIX\",\n  \"operatorType\": \"MANUFACTURER\",\n  \"operatorName\": \"Abebe Beverages PLC\",\n  \"operatorTin\": \"0012345678\",\n  \"operatorLicenseNumber\": \"ET-EXC-2026-0001\",\n  \"ethiopiaRevenueOffice\": \"Addis Ababa Large Taxpayers Office\",\n  \"productId\": \"{{productId}}\",\n  \"productName\": \"Excisable Beverage 500ml\",\n  \"packageLevel\": \"UNIT\",\n  \"batchNumber\": \"BATCH-APR-2026-01\",\n  \"productionDate\": \"2026-04-09T07:00:00.000Z\",\n  \"forecastReference\": \"FORECAST-2026-APR\",\n  \"forecastSubmittedAt\": \"2026-01-01T08:00:00.000Z\",\n  \"requiresSixtyDayForecast\": true,\n  \"isImported\": false,\n  \"metadata\": {\n    \"country\": \"ET\",\n    \"standard\": \"WHO-FCTC-ITP\"\n  }\n}"
         },
         "url": {
           "raw": "{{baseUrl}}{{apiPrefix}}/stamps-labels/admin/generate",

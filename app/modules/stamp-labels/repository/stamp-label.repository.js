@@ -1,9 +1,12 @@
 import { models } from '../../../shared/db/data-source.js';
 import { BaseRepository } from '../../../shared/repository/base.repository.js';
+import { Op } from 'sequelize';
 
 const STAMP_LABEL_ATTRIBUTES = [
   'id',
   'organizationId',
+  'stampRequestId',
+  'stampRequestNumber',
   'stampUid',
   'digitalLink',
   'codeFormat',
@@ -45,6 +48,12 @@ const STAMP_LABEL_ATTRIBUTES = [
 ];
 
 const STAMP_LABEL_INCLUDE = [
+  {
+    model: models.ExciseStampRequest,
+    as: 'stampRequest',
+    attributes: ['id', 'requestNumber', 'status', 'quantity', 'goodsCategory'],
+    required: false,
+  },
   {
     model: models.Product,
     as: 'product',
@@ -89,6 +98,18 @@ export class StampLabelRepository extends BaseRepository {
       },
     );
   }
+
+  findManyByBatchNumber(req, batchNumber) {
+    return this.findMany(
+      req,
+      { batchNumber },
+      {
+        attributes: STAMP_LABEL_ATTRIBUTES,
+        include: STAMP_LABEL_INCLUDE,
+        order: [['createdAt', 'ASC']],
+      },
+    );
+  }
 }
 
 export class StampLabelEventRepository extends BaseRepository {
@@ -106,6 +127,28 @@ export class StampLabelEventRepository extends BaseRepository {
       {
         page: 1,
         limit: 250,
+      },
+    );
+  }
+
+  listByStampLabelIds(req, stampLabelIds) {
+    if (!Array.isArray(stampLabelIds) || stampLabelIds.length === 0) {
+      return { data: [], count: 0 };
+    }
+
+    return this.findAll(
+      req,
+      {
+        where: {
+          stampLabelId: {
+            [Op.in]: stampLabelIds,
+          },
+        },
+        order: [['occurredAt', 'DESC']],
+      },
+      {
+        page: 1,
+        limit: 1000,
       },
     );
   }

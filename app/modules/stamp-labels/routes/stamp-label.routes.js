@@ -14,6 +14,7 @@ import {
   generateStampLabelsBodySchema,
   issueStampLabelBodySchema,
   publicVerifyStampLabelBodySchema,
+  stampLabelBatchParamsSchema,
   stampLabelIdParamsSchema,
   stampLabelUidParamsSchema,
   trackStampLabelBodySchema,
@@ -41,6 +42,11 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
     stampLabelController.getByUid,
   );
   router.get(
+    '/batch/:batchNumber',
+    validateParams(stampLabelBatchParamsSchema),
+    stampLabelController.getByBatchNumber,
+  );
+  router.get(
     '/:id',
     validateParams(stampLabelIdParamsSchema),
     stampLabelController.getById,
@@ -49,6 +55,11 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
     '/:id/audit',
     validateParams(stampLabelIdParamsSchema),
     stampLabelController.getAuditTrail,
+  );
+  router.get(
+    '/batch/:batchNumber/audit',
+    validateParams(stampLabelBatchParamsSchema),
+    stampLabelController.getBatchAuditTrail,
   );
 
   adminRouter.post(
@@ -61,6 +72,18 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
     validateParams(stampLabelIdParamsSchema),
     validateBody(issueStampLabelBodySchema),
     stampLabelController.issue,
+  );
+  router.post(
+    '/batch/:batchNumber/issue',
+    validateParams(stampLabelBatchParamsSchema),
+    validateBody(issueStampLabelBodySchema),
+    stampLabelController.issueByBatch,
+  );
+  router.post(
+    '/batch/:batchNumber/print',
+    validateParams(stampLabelBatchParamsSchema),
+    validateBody(issueStampLabelBodySchema),
+    stampLabelController.issueByBatch,
   );
   router.post(
     '/:id/assign',
@@ -97,6 +120,12 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
     validateParams(stampLabelIdParamsSchema),
     validateBody(auditStampLabelBodySchema),
     stampLabelController.audit,
+  );
+  router.post(
+    '/batch/:batchNumber/audit',
+    validateParams(stampLabelBatchParamsSchema),
+    validateBody(auditStampLabelBodySchema),
+    stampLabelController.auditByBatch,
   );
 
   adminRouter.post(

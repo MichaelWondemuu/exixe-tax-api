@@ -1,25 +1,21 @@
 import { DataTypes } from 'sequelize';
+import { getBaseFields, getBaseOptions } from '../../../shared/db/base.model.js';
 import { DELIVERY_NOTE_STATUS } from '../constants/excise.enums.js';
 
 export const ExciseDeliveryNote = (sequelize) => {
+  const base = getBaseFields();
   const model = sequelize.define(
     'ExciseDeliveryNote',
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+      ...base,
+      organizationId: {
+        ...base.organizationId,
+        allowNull: true,
       },
       noteNumber: {
         type: DataTypes.STRING(64),
         allowNull: false,
-        unique: true,
         field: 'note_number',
-      },
-      organizationId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        field: 'organization_id',
       },
       fromFacilityId: {
         type: DataTypes.UUID,
@@ -88,26 +84,16 @@ export const ExciseDeliveryNote = (sequelize) => {
         allowNull: true,
         field: 'received_at',
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'created_at',
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'updated_at',
-      },
     },
     {
-      sequelize,
-      tableName: 'excise_delivery_notes',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      underscored: true,
+      ...getBaseOptions('excise_delivery_notes'),
+      indexes: [
+        {
+          unique: true,
+          fields: [{ name: 'note_number' }],
+          name: 'unique_excise_delivery_note_number',
+        },
+      ],
     },
   );
 

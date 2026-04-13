@@ -1,14 +1,16 @@
+import { BaseResponse } from '../../../../shared/responses/base.response.js';
+
 function briefOrganization(org) {
   if (!org) return org;
-  return {
-    id: org.id,
-    name: org.name,
-    tenantId: org.tenantId,
-    isSystemOrganization: org.isSystemOrganization,
-    isActive: org.isActive,
-    parentId: org.parentId,
-    organizationType: org.organizationType,
-  };
+  const response = {};
+  BaseResponse.extendResponse(org, response);
+  response.name = org.name;
+  response.tenantId = org.tenantId;
+  response.isSystemOrganization = org.isSystemOrganization;
+  response.isActive = org.isActive;
+  response.parentId = org.parentId;
+  response.organizationType = org.organizationType;
+  return response;
 }
 
 function associationBrief(node) {
@@ -24,58 +26,48 @@ export class OrganizationDetailResponse {
   static toResponse(detail) {
     if (!detail) return detail;
     const d = detail.get ? detail.get({ plain: true }) : detail;
-    return {
-      id: d.id,
-      organizationId: d.organizationId,
-      city: d.city,
-      email: d.email,
-      houseNumber: d.houseNumber,
-      legalName: d.legalName,
-      locality: d.locality,
-      phone: d.phone,
-      region: d.region,
-      subCity: d.subCity,
-      tin: d.tin,
-      vatNumber: d.vatNumber,
-      wereda: d.wereda,
-      country: d.country,
-      serialNumber: d.serialNumber,
-      systemNumber: d.systemNumber,
-      systemType: d.systemType,
-      lastInvoiceCounter: d.lastInvoiceCounter,
-      lastInvoiceReferenceNumber: d.lastInvoiceReferenceNumber,
-      lastReceiptReferenceNumber: d.lastReceiptReferenceNumber,
-      createdAt: d.createdAt,
-      updatedAt: d.updatedAt,
-    };
+    const response = {};
+    BaseResponse.extendResponse(d, response);
+    response.city = d.city;
+    response.email = d.email;
+    response.houseNumber = d.houseNumber;
+    response.legalName = d.legalName;
+    response.locality = d.locality;
+    response.phone = d.phone;
+    response.region = d.region;
+    response.subCity = d.subCity;
+    response.tin = d.tin;
+    response.vatNumber = d.vatNumber;
+    response.wereda = d.wereda;
+    response.country = d.country;
+    response.serialNumber = d.serialNumber;
+    response.systemNumber = d.systemNumber;
+    response.systemType = d.systemType;
+    response.lastInvoiceCounter = d.lastInvoiceCounter;
+    response.lastInvoiceReferenceNumber = d.lastInvoiceReferenceNumber;
+    response.lastReceiptReferenceNumber = d.lastReceiptReferenceNumber;
+    return response;
   }
 }
 
 export class OrganizationResponse {
   static toResponse(organization) {
     if (!organization) return organization;
-    const response = {
-      id: organization.id,
-      name: organization.name,
-      tenantId: organization.tenantId,
-      isSystemOrganization: organization.isSystemOrganization,
-      isActive: organization.isActive,
-      parentId: organization.parentId,
-      organizationType: organization.organizationType,
-      country: organization.country,
-      regionId: organization.regionId,
-      zoneId: organization.zoneId,
-      woredaId: organization.woredaId,
-      latitude: organization.latitude,
-      longitude: organization.longitude,
-      sectorId: organization.sectorId,
-      createdBy: organization.createdBy,
-      updatedBy: organization.updatedBy,
-      deletedBy: organization.deletedBy,
-      createdAt: organization.createdAt,
-      updatedAt: organization.updatedAt,
-      deletedAt: organization.deletedAt,
-    };
+    const response = {};
+    BaseResponse.extendResponse(organization, response);
+    response.name = organization.name;
+    response.tenantId = organization.tenantId;
+    response.isSystemOrganization = organization.isSystemOrganization;
+    response.isActive = organization.isActive;
+    response.parentId = organization.parentId;
+    response.organizationType = organization.organizationType;
+    response.country = organization.country;
+    response.regionId = organization.regionId;
+    response.zoneId = organization.zoneId;
+    response.woredaId = organization.woredaId;
+    response.latitude = organization.latitude;
+    response.longitude = organization.longitude;
+    response.sectorId = organization.sectorId;
 
     if (organization.parent) {
       response.parent = briefOrganization(organization.parent);

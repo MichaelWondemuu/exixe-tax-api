@@ -36,9 +36,33 @@ export class StampLabelController {
     }
   };
 
+  getByBatchNumber = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelQueryService.getByBatchNumber(
+        req,
+        req.params.batchNumber,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getAuditTrail = async (req, res, next) => {
     try {
       const result = await this.stampLabelQueryService.getAuditTrail(req, req.params.id);
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getBatchAuditTrail = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelQueryService.getBatchAuditTrail(
+        req,
+        req.params.batchNumber,
+      );
       res.json(formatResponse(result));
     } catch (error) {
       next(error);
@@ -68,6 +92,19 @@ export class StampLabelController {
       const result = await this.stampLabelCommandService.issue(
         req,
         req.params.id,
+        req.body || {},
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  issueByBatch = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelCommandService.issueByBatch(
+        req,
+        req.params.batchNumber,
         req.body || {},
       );
       res.json(formatResponse(result));
@@ -155,6 +192,19 @@ export class StampLabelController {
       const result = await this.stampLabelCommandService.audit(
         req,
         req.params.id,
+        req.body || {},
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  auditByBatch = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelCommandService.auditByBatch(
+        req,
+        req.params.batchNumber,
         req.body || {},
       );
       res.json(formatResponse(result));

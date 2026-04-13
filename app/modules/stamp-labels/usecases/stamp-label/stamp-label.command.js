@@ -1,5 +1,8 @@
 import { randomBytes, randomUUID } from 'crypto';
 import { HttpError } from '../../../../shared/utils/http-error.js';
+import { models } from '../../../../shared/db/data-source.js';
+import { STAMP_REQUEST_STATUS } from '../../../excise/constants/excise.enums.js';
+import { ensureStampRequestSchema } from '../../../excise/usecases/excise/ensure-stamp-request-schema.js';
 import {
   STAMP_LABEL_ENFORCEMENT_ACTION,
   STAMP_LABEL_EVENT_TYPE,
@@ -56,6 +59,11 @@ function ensureLifecycle(currentStatus, allowedStatuses, actionName) {
   }
 }
 
+function normalizeBatchNumber(batchNumber) {
+  const value = String(batchNumber || '').trim();
+  return value.length > 0 ? value : null;
+}
+
 export class StampLabelCommandService {
   /**
    * @param {{
@@ -97,6 +105,26 @@ export class StampLabelCommandService {
     return stamp;
   }
 
+  async getBatchStampsOrFail(req, batchNumber) {
+    const normalizedBatchNumber = normalizeBatchNumber(batchNumber);
+    if (!normalizedBatchNumber) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'batchNumber is required');
+    }
+
+    const stamps = await this.stampLabelRepository.findManyByBatchNumber(
+      req,
+      normalizedBatchNumber,
+    );
+    if (!Array.isArray(stamps) || stamps.length === 0) {
+      throw new HttpError(404, 'NOT_FOUND', 'No stamp labels found for batchNumber');
+    }
+
+    return {
+      batchNumber: normalizedBatchNumber,
+      stamps,
+    };
+  }
+
   async applyStatusUpdate(req, stamp, nextStatus, patch = {}) {
     const currentRank = statusRank(stamp.status);
     const nextRank = statusRank(nextStatus);
@@ -107,8 +135,56 @@ export class StampLabelCommandService {
     });
   }
 
+  async getEligibleStampRequestOrFail(req, stampRequestId) {
+    if (!stampRequestId) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'stampRequestId is required for stamp generation',
+      );
+    }
+
+    const stampRequest = await models.ExciseStampRequest.findByPk(stampRequestId, {
+      attributes: [
+        'id',
+        'organizationId',
+        'requestNumber',
+        'status',
+        'quantity',
+        'generatedQuantity',
+        'goodsCategory',
+        'goodsDescription',
+      ],
+    });
+
+    if (!stampRequest) {
+      throw new HttpError(404, 'NOT_FOUND', 'Referenced stamp request not found');
+    }
+
+    const isSystem = req?.isSystem === true;
+    if (!isSystem && req?.organizationId && stampRequest.organizationId !== req.organizationId) {
+      throw new HttpError(404, 'NOT_FOUND', 'Referenced stamp request not found');
+    }
+
+    if (
+      ![
+        STAMP_REQUEST_STATUS.APPROVED,
+        STAMP_REQUEST_STATUS.FULFILLED,
+      ].includes(stampRequest.status)
+    ) {
+      throw new HttpError(
+        409,
+        'STAMP_REQUEST_NOT_ELIGIBLE',
+        'Stamp request must be APPROVED or FULFILLED before generation',
+      );
+    }
+
+    return stampRequest;
+  }
+
   generate = async (req, body = {}) => {
     await ensureStampLabelSchema();
+    await ensureStampRequestSchema();
     const count = Number(body.count || 1);
     if (!Number.isFinite(count) || count < 1 || count > 5000) {
       throw new HttpError(
@@ -118,12 +194,41 @@ export class StampLabelCommandService {
       );
     }
 
+    const stampRequest = await this.getEligibleStampRequestOrFail(
+      req,
+      body.stampRequestId,
+    );
+
+    const fromLabels = await this.stampLabelRepository.getModel().count({
+      where: { stampRequestId: stampRequest.id },
+    });
+    const fromField = Number(stampRequest.generatedQuantity) || 0;
+    const alreadyGenerated = Math.max(fromField, fromLabels);
+    const remaining = stampRequest.quantity - alreadyGenerated;
+    if (remaining < 0) {
+      await stampRequest.update({ generatedQuantity: fromLabels });
+      throw new HttpError(
+        409,
+        'STAMP_REQUEST_QUANTITY_EXCEEDED',
+        `Stamp request has ${fromLabels} label(s) but approved quantity is ${stampRequest.quantity}; counter was corrected.`,
+      );
+    }
+    if (count > remaining) {
+      throw new HttpError(
+        409,
+        'STAMP_REQUEST_QUANTITY_EXCEEDED',
+        `Requested ${count} stamp(s) but only ${remaining} remaining of ${stampRequest.quantity} approved (${alreadyGenerated} already generated).`,
+      );
+    }
+
     const now = new Date();
     const created = [];
     for (let i = 0; i < count; i += 1) {
       const stampUid = buildStampUid(body.uidPrefix);
       const stamp = await this.stampLabelRepository.create(req, {
         id: randomUUID(),
+        stampRequestId: stampRequest.id,
+        stampRequestNumber: stampRequest.requestNumber,
         stampUid,
         digitalLink:
           body.digitalLinkBase &&
@@ -136,7 +241,11 @@ export class StampLabelCommandService {
         operatorLicenseNumber: body.operatorLicenseNumber || null,
         ethiopiaRevenueOffice: body.ethiopiaRevenueOffice || null,
         productId: body.productId || null,
-        productName: body.productName || null,
+        productName:
+          body.productName ||
+          stampRequest.goodsDescription ||
+          stampRequest.goodsCategory ||
+          null,
         packageLevel: body.packageLevel,
         batchNumber: body.batchNumber || null,
         productionDate: body.productionDate || null,
@@ -149,11 +258,20 @@ export class StampLabelCommandService {
         metadata: body.metadata || {},
       });
 
+      created.push(stamp);
+
       await this.logEvent(req, stamp, STAMP_LABEL_EVENT_TYPE.GENERATED, {
         fromStatus: null,
         toStatus: STAMP_LABEL_LIFECYCLE_STATUS.GENERATED,
         payload: {
           generationBatchSize: count,
+          stampRequest: {
+            id: stampRequest.id,
+            requestNumber: stampRequest.requestNumber,
+            status: stampRequest.status,
+            quantity: stampRequest.quantity,
+            generatedQuantity: alreadyGenerated + created.length,
+          },
           ethiopianContext: {
             requiresSixtyDayForecast: stamp.requiresSixtyDayForecast,
             ethiopiaRevenueOffice: stamp.ethiopiaRevenueOffice,
@@ -161,11 +279,15 @@ export class StampLabelCommandService {
         },
         occurredAt: now,
       });
-      created.push(stamp);
     }
+
+    const newGeneratedTotal = alreadyGenerated + created.length;
+    await stampRequest.update({ generatedQuantity: newGeneratedTotal });
 
     return {
       generatedCount: created.length,
+      generatedQuantity: newGeneratedTotal,
+      remainingQuantity: stampRequest.quantity - newGeneratedTotal,
       stamps: created,
     };
   };
@@ -214,6 +336,65 @@ export class StampLabelCommandService {
     });
 
     return updated;
+  };
+
+  issueByBatch = async (req, batchNumber, body = {}) => {
+    await ensureStampLabelSchema();
+    const { batchNumber: resolvedBatchNumber, stamps } = await this.getBatchStampsOrFail(
+      req,
+      batchNumber,
+    );
+    const issueTime = body.issuedAt ? new Date(body.issuedAt) : new Date();
+    if (Number.isNaN(issueTime.getTime())) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'issuedAt is invalid');
+    }
+
+    for (const stamp of stamps) {
+      ensureLifecycle(stamp.status, [STAMP_LABEL_LIFECYCLE_STATUS.GENERATED], 'issue');
+      if (stamp.requiresSixtyDayForecast && stamp.forecastSubmittedAt) {
+        const forecastDate = new Date(stamp.forecastSubmittedAt);
+        const leadMs = issueTime.getTime() - forecastDate.getTime();
+        const minimumLeadMs = 60 * 24 * 60 * 60 * 1000;
+        if (leadMs < minimumLeadMs) {
+          throw new HttpError(
+            409,
+            'FORECAST_LEAD_TIME_NOT_MET',
+            `Forecast reference must be submitted at least 60 days before issuance (batch ${resolvedBatchNumber})`,
+          );
+        }
+      }
+    }
+
+    const updatedStamps = [];
+    for (const stamp of stamps) {
+      const updated = await this.applyStatusUpdate(
+        req,
+        stamp,
+        STAMP_LABEL_LIFECYCLE_STATUS.ISSUED,
+        {
+          issuedAt: issueTime,
+          notes: body.notes ?? stamp.notes,
+        },
+      );
+      await this.logEvent(req, updated, STAMP_LABEL_EVENT_TYPE.ISSUED, {
+        fromStatus: stamp.status,
+        toStatus: updated.status,
+        payload: {
+          batchNumber: resolvedBatchNumber,
+          forecastReference: updated.forecastReference,
+          notes: body.notes || null,
+        },
+        occurredAt: issueTime,
+      });
+      updatedStamps.push(updated);
+    }
+
+    return {
+      batchNumber: resolvedBatchNumber,
+      processedCount: updatedStamps.length,
+      status: STAMP_LABEL_LIFECYCLE_STATUS.ISSUED,
+      stamps: updatedStamps,
+    };
   };
 
   assign = async (req, id, body = {}) => {
@@ -437,6 +618,59 @@ export class StampLabelCommandService {
     });
 
     return updated;
+  };
+
+  auditByBatch = async (req, batchNumber, body = {}) => {
+    await ensureStampLabelSchema();
+    const { batchNumber: resolvedBatchNumber, stamps } = await this.getBatchStampsOrFail(
+      req,
+      batchNumber,
+    );
+    for (const stamp of stamps) {
+      if (stamp.status === STAMP_LABEL_LIFECYCLE_STATUS.GENERATED) {
+        throw new HttpError(
+          409,
+          'STAMP_LIFECYCLE_CONFLICT',
+          `Generated stamps must be issued before audit (batch ${resolvedBatchNumber})`,
+        );
+      }
+    }
+
+    const auditedAt = body.auditedAt ? new Date(body.auditedAt) : new Date();
+    if (Number.isNaN(auditedAt.getTime())) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'auditedAt is invalid');
+    }
+
+    const updatedStamps = [];
+    for (const stamp of stamps) {
+      const nextStatus =
+        stamp.status === STAMP_LABEL_LIFECYCLE_STATUS.REVOKED
+          ? STAMP_LABEL_LIFECYCLE_STATUS.REVOKED
+          : STAMP_LABEL_LIFECYCLE_STATUS.AUDITED;
+
+      const updated = await this.applyStatusUpdate(req, stamp, nextStatus, {
+        auditedAt,
+        notes: body.notes ?? stamp.notes,
+      });
+      await this.logEvent(req, updated, STAMP_LABEL_EVENT_TYPE.AUDITED, {
+        fromStatus: stamp.status,
+        toStatus: updated.status,
+        payload: {
+          batchNumber: resolvedBatchNumber,
+          inspectionReference: body.inspectionReference || null,
+          findings: body.findings || null,
+        },
+        occurredAt: auditedAt,
+      });
+      updatedStamps.push(updated);
+    }
+
+    return {
+      batchNumber: resolvedBatchNumber,
+      processedCount: updatedStamps.length,
+      status: STAMP_LABEL_LIFECYCLE_STATUS.AUDITED,
+      stamps: updatedStamps,
+    };
   };
 
   enforce = async (req, id, body = {}) => {

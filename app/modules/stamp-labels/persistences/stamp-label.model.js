@@ -20,10 +20,19 @@ export const StampLabel = (sequelize) => {
         allowNull: true,
         field: 'organization_id',
       },
+      stampRequestId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        field: 'stamp_request_id',
+      },
+      stampRequestNumber: {
+        type: DataTypes.STRING(64),
+        allowNull: false,
+        field: 'stamp_request_number',
+      },
       stampUid: {
         type: DataTypes.STRING(128),
         allowNull: false,
-        unique: true,
         field: 'stamp_uid',
       },
       digitalLink: {
@@ -228,6 +237,13 @@ export const StampLabel = (sequelize) => {
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       underscored: true,
+      indexes: [
+        {
+          unique: true,
+          fields: [{ name: 'stamp_uid' }],
+          name: 'unique_stamp_label_stamp_uid',
+        },
+      ],
     },
   );
 
@@ -235,6 +251,12 @@ export const StampLabel = (sequelize) => {
     model.belongsTo(models.Organization, {
       foreignKey: 'organizationId',
       as: 'organization',
+    });
+    // Avoid Sequelize sync/alter managing this FK (fails when orphan stamp_request_id rows exist).
+    model.belongsTo(models.ExciseStampRequest, {
+      foreignKey: 'stampRequestId',
+      as: 'stampRequest',
+      constraints: false,
     });
     model.belongsTo(models.Product, {
       foreignKey: 'productId',

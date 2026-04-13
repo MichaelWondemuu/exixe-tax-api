@@ -16,8 +16,13 @@ export const stampLabelUidParamsSchema = yup.object({
   stampUid: yup.string().trim().min(1).max(128).required(),
 });
 
+export const stampLabelBatchParamsSchema = yup.object({
+  batchNumber: yup.string().trim().min(1).max(128).required(),
+});
+
 export const generateStampLabelsBodySchema = yup.object({
   count: yup.number().integer().min(1).max(5000).default(1),
+  stampRequestId: yup.string().uuid().required(),
   uidPrefix: yup.string().trim().max(32).nullable(),
   digitalLinkBase: yup.string().trim().url().nullable(),
   codeFormat: yup

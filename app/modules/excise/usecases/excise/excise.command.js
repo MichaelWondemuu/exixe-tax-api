@@ -17,6 +17,13 @@ import {
   STAMP_WASTAGE_REASON,
   STAMP_REQUEST_STATUS,
 } from '../../constants/excise.enums.js';
+import { ensureStampRequestSchema } from './ensure-stamp-request-schema.js';
+import { DeliveryNoteResponse } from '../delivery-note/delivery-note.response.js';
+import { FacilityResponse } from '../facility/facility.response.js';
+import { ForecastResponse } from '../forecast/forecast.response.js';
+import { StampRequestResponse } from '../stamp-request/stamp-request.response.js';
+import { StampStockEventResponse } from '../stamp-stock-event/stamp-stock-event.response.js';
+import { StampVerificationResponse } from '../stamp-verification/stamp-verification.response.js';
 
 const DELIVERY_NOTE_TRANSITIONS = Object.freeze({
   [DELIVERY_NOTE_STATUS.DRAFT]: [
@@ -73,7 +80,6 @@ const STOCK_EVENT_TRANSITIONS = Object.freeze({
 
 const MIN_STAMP_APPLICATION_LEAD_DAYS = 29;
 const TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS = 5;
-let stampSchemaReadyPromise = null;
 let forecastSchemaReadyPromise = null;
 let stockEventSchemaReadyPromise = null;
 let verificationSchemaReadyPromise = null;
@@ -121,34 +127,6 @@ function addWorkingDays(baseDate, daysToAdd) {
     }
   }
   return out;
-}
-
-async function ensureStampRequestSchema() {
-  if (stampSchemaReadyPromise) {
-    return stampSchemaReadyPromise;
-  }
-
-  stampSchemaReadyPromise = (async () => {
-    await sequelize.query(`
-      ALTER TABLE "excise_stamp_requests"
-      ADD COLUMN IF NOT EXISTS "stamp_fee_amount" DECIMAL(18,2),
-      ADD COLUMN IF NOT EXISTS "stamp_fee_currency" VARCHAR(8),
-      ADD COLUMN IF NOT EXISTS "payment_status" VARCHAR(32) DEFAULT 'UNPAID',
-      ADD COLUMN IF NOT EXISTS "payment_reference" VARCHAR(128),
-      ADD COLUMN IF NOT EXISTS "payment_proof_url" VARCHAR(500),
-      ADD COLUMN IF NOT EXISTS "paid_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "submitted_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "review_due_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "reviewed_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "reviewed_by_user_id" UUID,
-      ADD COLUMN IF NOT EXISTS "review_sla_breached" BOOLEAN DEFAULT FALSE
-    `);
-  })().catch((error) => {
-    stampSchemaReadyPromise = null;
-    throw error;
-  });
-
-  return stampSchemaReadyPromise;
 }
 
 function toUtcMonthStart(date) {
@@ -428,7 +406,9 @@ export class ExciseCommandService {
     }
 
     const created = await this.facilityRepository.create(req, payload);
-    return this.facilityRepository.findByIdDetailed(req, created.id);
+    return FacilityResponse.toResponse(
+      await this.facilityRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateFacility = async (req, id, body) => {
@@ -458,7 +438,9 @@ export class ExciseCommandService {
     if (!updated) {
       throw new HttpError(404, 'NOT_FOUND', 'Facility not found');
     }
-    return this.facilityRepository.findByIdDetailed(req, id);
+    return FacilityResponse.toResponse(
+      await this.facilityRepository.findByIdDetailed(req, id),
+    );
   };
 
   createDeliveryNote = async (req, body) => {
@@ -527,7 +509,9 @@ export class ExciseCommandService {
     };
 
     const created = await this.deliveryNoteRepository.create(req, payload);
-    return this.deliveryNoteRepository.findByIdDetailed(req, created.id);
+    return DeliveryNoteResponse.toResponse(
+      await this.deliveryNoteRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateDeliveryNoteStatus = async (req, id, body) => {
@@ -560,7 +544,9 @@ export class ExciseCommandService {
     }
 
     await this.deliveryNoteRepository.update(req, id, patch);
-    return this.deliveryNoteRepository.findByIdDetailed(req, id);
+    return DeliveryNoteResponse.toResponse(
+      await this.deliveryNoteRepository.findByIdDetailed(req, id),
+    );
   };
 
   createStampRequest = async (req, body) => {
@@ -630,7 +616,9 @@ export class ExciseCommandService {
     }
 
     const created = await this.stampRequestRepository.create(req, payload);
-    return this.stampRequestRepository.findByIdDetailed(req, created.id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateStampRequestPayment = async (req, id, body) => {
@@ -680,7 +668,9 @@ export class ExciseCommandService {
     }
 
     await this.stampRequestRepository.update(req, id, patch);
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   submitStampRequest = async (req, id) => {
@@ -716,7 +706,9 @@ export class ExciseCommandService {
       rejectionReason: null,
     });
 
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   reviewStampRequest = async (req, id, body) => {
@@ -776,7 +768,9 @@ export class ExciseCommandService {
     }
 
     await this.stampRequestRepository.update(req, id, patch);
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   fulfillStampRequest = async (req, id) => {
@@ -797,7 +791,9 @@ export class ExciseCommandService {
       status: STAMP_REQUEST_STATUS.FULFILLED,
       fulfilledAt: new Date(),
     });
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   createForecast = async (req, body) => {
@@ -828,7 +824,9 @@ export class ExciseCommandService {
     };
 
     const created = await this.forecastRepository.create(req, payload);
-    return this.forecastRepository.findByIdDetailed(req, created.id);
+    return ForecastResponse.toResponse(
+      await this.forecastRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateForecast = async (req, id, body) => {
@@ -864,7 +862,9 @@ export class ExciseCommandService {
     }
 
     await this.forecastRepository.update(req, id, patch);
-    return this.forecastRepository.findByIdDetailed(req, id);
+    return ForecastResponse.toResponse(
+      await this.forecastRepository.findByIdDetailed(req, id),
+    );
   };
 
   submitForecast = async (req, id) => {
@@ -898,7 +898,9 @@ export class ExciseCommandService {
       status: FORECAST_STATUS.SUBMITTED,
       submittedAt: new Date(),
     });
-    return this.forecastRepository.findByIdDetailed(req, id);
+    return ForecastResponse.toResponse(
+      await this.forecastRepository.findByIdDetailed(req, id),
+    );
   };
 
   createStockEvent = async (req, body) => {
@@ -1006,7 +1008,9 @@ export class ExciseCommandService {
           : {},
     });
 
-    return this.stockEventRepository.findByIdDetailed(req, created.id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   submitStockEvent = async (req, id) => {
@@ -1028,7 +1032,9 @@ export class ExciseCommandService {
       requestedAt: new Date(),
       rejectionReason: null,
     });
-    return this.stockEventRepository.findByIdDetailed(req, id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, id),
+    );
   };
 
   reviewStockEvent = async (req, id, body) => {
@@ -1077,7 +1083,9 @@ export class ExciseCommandService {
     }
 
     await this.stockEventRepository.update(req, id, patch);
-    return this.stockEventRepository.findByIdDetailed(req, id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, id),
+    );
   };
 
   completeStockEvent = async (req, id) => {
@@ -1098,7 +1106,9 @@ export class ExciseCommandService {
       status: STAMP_STOCK_EVENT_STATUS.COMPLETED,
       completedAt: new Date(),
     });
-    return this.stockEventRepository.findByIdDetailed(req, id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, id),
+    );
   };
 
   createStampVerification = async (req, body, { isPublic = false } = {}) => {
@@ -1185,6 +1195,8 @@ export class ExciseCommandService {
         : new Date(),
     });
 
-    return this.verificationRepository.findByIdDetailed(req, created.id);
+    return StampVerificationResponse.toResponse(
+      await this.verificationRepository.findByIdDetailed(req, created.id),
+    );
   };
 }

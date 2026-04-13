@@ -10,7 +10,13 @@ export const stampVerificationBodySchema = yup.object({
   facilityId: yup.string().uuid().nullable(),
   channel: yup.string().oneOf(Object.values(STAMP_VERIFICATION_CHANNEL)).required(),
   result: yup.string().oneOf(Object.values(STAMP_VERIFICATION_RESULT)).required(),
-  stampIdentifier: yup.string().trim().min(1).max(256).required(),
+  stampIdentifier: yup.string().trim().min(1).max(256).nullable(),
+  qrUrl: yup
+    .string()
+    .trim()
+    .max(1024)
+    .matches(/^https?:\/\/\S+$/i, 'qrUrl must be a valid http(s) URL')
+    .nullable(),
   productDescription: yup.string().trim().max(255).nullable(),
   supplierName: yup.string().trim().max(255).nullable(),
   supplierDocumentType: yup.string().trim().max(64).nullable(),
@@ -18,5 +24,10 @@ export const stampVerificationBodySchema = yup.object({
   verificationEvidence: yup.object().nullable(),
   remarks: yup.string().trim().max(5000).nullable(),
   verifiedAt: yup.date().nullable(),
-});
+})
+  .test(
+    'stampIdentifier-or-qrUrl-required',
+    'stampIdentifier or qrUrl is required',
+    (value) => Boolean(value?.stampIdentifier || value?.qrUrl),
+  );
 

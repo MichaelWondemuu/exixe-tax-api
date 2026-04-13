@@ -41,12 +41,58 @@ export class StampLabelQueryService {
     return entity;
   };
 
+  getByBatchNumber = async (req, batchNumber) => {
+    await ensureStampLabelSchema();
+    const resolvedBatchNumber = String(batchNumber || '').trim();
+    if (!resolvedBatchNumber) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'batchNumber is required');
+    }
+
+    const stamps = await this.stampLabelRepository.findManyByBatchNumber(
+      req,
+      resolvedBatchNumber,
+    );
+    if (!Array.isArray(stamps) || stamps.length === 0) {
+      throw new HttpError(404, 'NOT_FOUND', 'No stamp labels found for batchNumber');
+    }
+    return {
+      batchNumber: resolvedBatchNumber,
+      count: stamps.length,
+      stamps,
+    };
+  };
+
   getAuditTrail = async (req, id) => {
     await ensureStampLabelSchema();
     const stamp = await this.getById(req, id);
     const events = await this.stampLabelEventRepository.listByStampLabelId(req, id);
     return {
       stamp,
+      events: events.data || [],
+      count: events.count ?? 0,
+    };
+  };
+
+  getBatchAuditTrail = async (req, batchNumber) => {
+    await ensureStampLabelSchema();
+    const resolvedBatchNumber = String(batchNumber || '').trim();
+    if (!resolvedBatchNumber) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'batchNumber is required');
+    }
+
+    const stamps = await this.stampLabelRepository.findManyByBatchNumber(
+      req,
+      resolvedBatchNumber,
+    );
+    if (!Array.isArray(stamps) || stamps.length === 0) {
+      throw new HttpError(404, 'NOT_FOUND', 'No stamp labels found for batchNumber');
+    }
+
+    const stampIds = stamps.map((stamp) => stamp.id);
+    const events = await this.stampLabelEventRepository.listByStampLabelIds(req, stampIds);
+    return {
+      batchNumber: resolvedBatchNumber,
+      stamps,
       events: events.data || [],
       count: events.count ?? 0,
     };

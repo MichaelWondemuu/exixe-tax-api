@@ -1,28 +1,24 @@
 import { DataTypes } from 'sequelize';
+import { getBaseFields, getBaseOptions } from '../../../shared/db/base.model.js';
 import {
   STAMP_STOCK_EVENT_STATUS,
   STAMP_STOCK_EVENT_TYPE,
 } from '../constants/excise.enums.js';
 
 export const ExciseStampStockEvent = (sequelize) => {
+  const base = getBaseFields();
   const model = sequelize.define(
     'ExciseStampStockEvent',
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+      ...base,
+      organizationId: {
+        ...base.organizationId,
+        allowNull: true,
       },
       eventNumber: {
         type: DataTypes.STRING(64),
         allowNull: false,
-        unique: true,
         field: 'event_number',
-      },
-      organizationId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        field: 'organization_id',
       },
       eventType: {
         type: DataTypes.ENUM(...Object.values(STAMP_STOCK_EVENT_TYPE)),
@@ -101,26 +97,16 @@ export const ExciseStampStockEvent = (sequelize) => {
         defaultValue: {},
         field: 'meta',
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'created_at',
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'updated_at',
-      },
     },
     {
-      sequelize,
-      tableName: 'excise_stamp_stock_events',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      underscored: true,
+      ...getBaseOptions('excise_stamp_stock_events'),
+      indexes: [
+        {
+          unique: true,
+          fields: [{ name: 'event_number' }],
+          name: 'unique_excise_stamp_stock_event_number',
+        },
+      ],
     },
   );
 

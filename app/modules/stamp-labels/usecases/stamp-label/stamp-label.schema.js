@@ -12,6 +12,8 @@ export async function ensureStampLabelSchema() {
       CREATE TABLE IF NOT EXISTS "stamp_labels" (
         "id" UUID PRIMARY KEY,
         "organization_id" UUID,
+        "stamp_request_id" UUID NOT NULL,
+        "stamp_request_number" VARCHAR(64) NOT NULL,
         "stamp_uid" VARCHAR(128) NOT NULL UNIQUE,
         "digital_link" VARCHAR(512),
         "code_format" VARCHAR(32) NOT NULL DEFAULT 'GS1_DATAMATRIX',
@@ -54,6 +56,12 @@ export async function ensureStampLabelSchema() {
     `);
 
     await sequelize.query(`
+      ALTER TABLE "stamp_labels"
+      ADD COLUMN IF NOT EXISTS "stamp_request_id" UUID,
+      ADD COLUMN IF NOT EXISTS "stamp_request_number" VARCHAR(64)
+    `);
+
+    await sequelize.query(`
       CREATE TABLE IF NOT EXISTS "stamp_label_events" (
         "id" UUID PRIMARY KEY,
         "organization_id" UUID,
@@ -78,6 +86,10 @@ export async function ensureStampLabelSchema() {
     await sequelize.query(`
       CREATE INDEX IF NOT EXISTS "idx_stamp_labels_status"
       ON "stamp_labels" ("status")
+    `);
+    await sequelize.query(`
+      CREATE INDEX IF NOT EXISTS "idx_stamp_labels_stamp_request_id"
+      ON "stamp_labels" ("stamp_request_id")
     `);
     await sequelize.query(`
       CREATE INDEX IF NOT EXISTS "idx_stamp_label_events_stamp_label_id"

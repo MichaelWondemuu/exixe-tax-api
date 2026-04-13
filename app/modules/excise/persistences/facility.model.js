@@ -1,25 +1,21 @@
 import { DataTypes } from 'sequelize';
+import { getBaseFields, getBaseOptions } from '../../../shared/db/base.model.js';
 import { FACILITY_TYPES } from '../constants/excise.enums.js';
 
 export const ExciseFacility = (sequelize) => {
+  const base = getBaseFields();
   const model = sequelize.define(
     'ExciseFacility',
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+      ...base,
+      organizationId: {
+        ...base.organizationId,
+        allowNull: true,
       },
       code: {
         type: DataTypes.STRING(64),
         allowNull: false,
-        unique: true,
         field: 'code',
-      },
-      organizationId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        field: 'organization_id',
       },
       name: {
         type: DataTypes.STRING(255),
@@ -72,26 +68,16 @@ export const ExciseFacility = (sequelize) => {
         defaultValue: true,
         field: 'is_active',
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'created_at',
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'updated_at',
-      },
     },
     {
-      sequelize,
-      tableName: 'excise_facilities',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      underscored: true,
+      ...getBaseOptions('excise_facilities'),
+      indexes: [
+        {
+          unique: true,
+          fields: ['code'],
+          name: 'unique_excise_facility_code',
+        },
+      ],
     },
   );
 
