@@ -9,6 +9,7 @@ export const EXCISE_CONFIG_KEYS = Object.freeze({
   TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS: 'TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS',
   ELIGIBLE_EXCISE_CATEGORY_CODES: 'ELIGIBLE_EXCISE_CATEGORY_CODES',
   ELIGIBLE_EXCISE_PRODUCT_TYPES: 'ELIGIBLE_EXCISE_PRODUCT_TYPES',
+  STAMP_LABEL_DIGITAL_LINK_BASE_URL: 'STAMP_LABEL_DIGITAL_LINK_BASE_URL',
 });
 
 export const EXCISE_DEFAULT_CONFIGS = Object.freeze({
@@ -37,6 +38,10 @@ export const EXCISE_DEFAULT_CONFIGS = Object.freeze({
   [EXCISE_CONFIG_KEYS.ELIGIBLE_EXCISE_PRODUCT_TYPES]: {
     value: ['LUXURY', 'PREMIUM', 'STANDARD'],
     description: 'Allowed product type names for excise stamp requests',
+  },
+  [EXCISE_CONFIG_KEYS.STAMP_LABEL_DIGITAL_LINK_BASE_URL]: {
+    value: 'https://stamp.cheche.et/verify',
+    description: 'Base URL used to build stamp label digital links',
   },
 });
 

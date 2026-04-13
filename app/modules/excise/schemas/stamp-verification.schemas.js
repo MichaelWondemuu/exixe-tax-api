@@ -6,10 +6,10 @@ import {
 } from '../constants/excise.enums.js';
 
 export const stampVerificationBodySchema = yup.object({
-  actorType: yup.string().oneOf(Object.values(STAMP_VERIFICATION_ACTOR_TYPE)).required(),
+  actorType: yup.string().oneOf(Object.values(STAMP_VERIFICATION_ACTOR_TYPE)).nullable(),
   facilityId: yup.string().uuid().nullable(),
   channel: yup.string().oneOf(Object.values(STAMP_VERIFICATION_CHANNEL)).required(),
-  result: yup.string().oneOf(Object.values(STAMP_VERIFICATION_RESULT)).required(),
+  result: yup.string().oneOf(Object.values(STAMP_VERIFICATION_RESULT)).nullable(),
   stampIdentifier: yup.string().trim().min(1).max(256).nullable(),
   qrUrl: yup
     .string()
@@ -23,6 +23,10 @@ export const stampVerificationBodySchema = yup.object({
   supplierDocumentNumber: yup.string().trim().max(128).nullable(),
   verificationEvidence: yup.object().nullable(),
   remarks: yup.string().trim().max(5000).nullable(),
+  merchantName: yup.string().trim().max(255).nullable(),
+  city: yup.string().trim().max(128).nullable(),
+  region: yup.string().trim().max(128).nullable(),
+  woreda: yup.string().trim().max(128).nullable(),
   verifiedAt: yup.date().nullable(),
 })
   .test(

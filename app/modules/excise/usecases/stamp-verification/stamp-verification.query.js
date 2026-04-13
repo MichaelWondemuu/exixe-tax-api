@@ -8,5 +8,7 @@ export class StampVerificationQueryService {
   getById = (req, id) => this.exciseQueryService.getStampVerificationById(req, id);
 
   getSummary = (req) => this.exciseQueryService.getStampVerificationSummary(req);
+
+  getAllScans = (req, query) => this.exciseQueryService.getAllStampScans(req, query);
 }
 

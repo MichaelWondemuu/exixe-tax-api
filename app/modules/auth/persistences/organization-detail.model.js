@@ -33,6 +33,26 @@ export const OrganizationDetail = (sequelize) => {
         allowNull: true,
       },
       tin: { type: DataTypes.STRING(64), allowNull: true },
+      operatorType: {
+        type: DataTypes.STRING(32),
+        field: 'operator_type',
+        allowNull: true,
+      },
+      operatorLicenseNumber: {
+        type: DataTypes.STRING(128),
+        field: 'operator_license_number',
+        allowNull: true,
+      },
+      merchantId: {
+        type: DataTypes.STRING(128),
+        field: 'merchant_id',
+        allowNull: true,
+      },
+      merchantName: {
+        type: DataTypes.STRING(255),
+        field: 'merchant_name',
+        allowNull: true,
+      },
       vatNumber: {
         type: DataTypes.STRING(64),
         field: 'vat_number',

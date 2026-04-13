@@ -45,7 +45,13 @@ import { ExciseStampStockEvent } from '../../modules/excise/persistences/stamp-s
 import { ExciseStampVerification } from '../../modules/excise/persistences/stamp-verification.model.js';
 import { ExciseConfig } from '../../modules/excise/persistences/config.model.js';
 import { StampLabel } from '../../modules/stamp-labels/persistences/stamp-label.model.js';
+import { StampLabelBatch } from '../../modules/stamp-labels/persistences/stamp-label-batch.model.js';
 import { StampLabelEvent } from '../../modules/stamp-labels/persistences/stamp-label-event.model.js';
+import { StampLabelVerificationAttempt } from '../../modules/stamp-labels/persistences/stamp-label-verification-attempt.model.js';
+import {
+  StampLabelTemplate,
+  StampLabelTemplateSecurityFeature,
+} from '../../modules/stamp-labels/persistences/stamp-label-template.model.js';
 import { OrgRegistrationApplication } from '../../modules/registration/persistences/org-registration-application.model.js';
 import { SelfRegAddress } from '../../modules/registration/persistences/self-reg/self-reg-address.model.js';
 import { SelfRegOrganization } from '../../modules/registration/persistences/self-reg/self-reg-organization.model.js';
@@ -111,7 +117,13 @@ export const ExciseStampStockEventModel = ExciseStampStockEvent(sequelize);
 export const ExciseStampVerificationModel = ExciseStampVerification(sequelize);
 export const ExciseConfigModel = ExciseConfig(sequelize);
 export const StampLabelModel = StampLabel(sequelize);
+export const StampLabelBatchModel = StampLabelBatch(sequelize);
 export const StampLabelEventModel = StampLabelEvent(sequelize);
+export const StampLabelVerificationAttemptModel =
+  StampLabelVerificationAttempt(sequelize);
+export const StampLabelTemplateModel = StampLabelTemplate(sequelize);
+export const StampLabelTemplateSecurityFeatureModel =
+  StampLabelTemplateSecurityFeature(sequelize);
 export const OrgRegistrationApplicationModel =
   OrgRegistrationApplication(sequelize);
 export const SelfRegAddressModel = SelfRegAddress(sequelize);
@@ -177,7 +189,11 @@ export const models = {
   ExciseStampVerification: ExciseStampVerificationModel,
   ExciseConfig: ExciseConfigModel,
   StampLabel: StampLabelModel,
+  StampLabelBatch: StampLabelBatchModel,
   StampLabelEvent: StampLabelEventModel,
+  StampLabelVerificationAttempt: StampLabelVerificationAttemptModel,
+  StampLabelTemplate: StampLabelTemplateModel,
+  StampLabelTemplateSecurityFeature: StampLabelTemplateSecurityFeatureModel,
   OrgRegistrationApplication: OrgRegistrationApplicationModel,
   SelfRegAddress: SelfRegAddressModel,
   SelfRegOrganization: SelfRegOrganizationModel,

@@ -1,5 +1,6 @@
 import { yup } from '../../../shared/middleware/validate.middleware.js';
 import {
+  STAMP_LABEL_BATCH_STATUS,
   STAMP_LABEL_CODE_FORMAT,
   STAMP_LABEL_ENFORCEMENT_ACTION,
   STAMP_LABEL_OPERATOR_TYPE,
@@ -20,30 +21,41 @@ export const stampLabelBatchParamsSchema = yup.object({
   batchNumber: yup.string().trim().min(1).max(128).required(),
 });
 
+export const stampLabelBatchIdParamsSchema = yup.object({
+  id: yup.string().uuid().required(),
+});
+
+export const stampRequestIdParamsSchema = yup.object({
+  stampRequestId: yup.string().uuid().required(),
+});
+
 export const generateStampLabelsBodySchema = yup.object({
   count: yup.number().integer().min(1).max(5000).default(1),
   stampRequestId: yup.string().uuid().required(),
+  templateId: yup.string().uuid().nullable(),
+  templateCode: yup.string().trim().max(128).nullable(),
+  templateVersion: yup.string().trim().max(32).nullable(),
   uidPrefix: yup.string().trim().max(32).nullable(),
-  digitalLinkBase: yup.string().trim().nullable(),
   codeFormat: yup
     .string()
     .oneOf(Object.values(STAMP_LABEL_CODE_FORMAT))
-    .required(),
+    .nullable(),
   operatorType: yup
     .string()
     .oneOf(Object.values(STAMP_LABEL_OPERATOR_TYPE))
-    .required(),
-  operatorName: yup.string().trim().min(2).max(255).required(),
-  operatorTin: yup.string().trim().min(5).max(64).required(),
+    .nullable(),
+  operatorName: yup.string().trim().min(2).max(255).nullable(),
+  operatorTin: yup.string().trim().min(5).max(64).nullable(),
   operatorLicenseNumber: yup.string().trim().max(128).nullable(),
+  merchantId: yup.string().trim().max(128).nullable(),
+  merchantName: yup.string().trim().max(255).nullable(),
   ethiopiaRevenueOffice: yup.string().trim().max(255).nullable(),
   productId: yup.string().uuid().nullable(),
   productName: yup.string().trim().max(255).nullable(),
   packageLevel: yup
     .string()
     .oneOf(Object.values(STAMP_LABEL_PACKAGE_LEVEL))
-    .required(),
-  batchNumber: yup.string().trim().max(128).nullable(),
+    .nullable(),
   productionDate: yup.date().nullable(),
   forecastReference: yup.string().trim().max(128).nullable(),
   forecastSubmittedAt: yup.date().nullable(),
@@ -55,6 +67,12 @@ export const generateStampLabelsBodySchema = yup.object({
 
 export const issueStampLabelBodySchema = yup.object({
   issuedAt: yup.date().nullable(),
+  notes: yup.string().trim().max(5000).nullable(),
+});
+
+export const printStampLabelBatchBodySchema = yup.object({
+  printedAt: yup.date().nullable(),
+  printedCount: yup.number().integer().min(0).nullable(),
   notes: yup.string().trim().max(5000).nullable(),
 });
 
@@ -91,7 +109,7 @@ export const verifyStampLabelBodySchema = yup.object({
   result: yup
     .string()
     .oneOf(Object.values(STAMP_LABEL_VERIFICATION_RESULT))
-    .required(),
+    .nullable(),
   locationCode: yup.string().trim().max(128).nullable(),
   inspectorBadge: yup.string().trim().max(128).nullable(),
   remarks: yup.string().trim().max(5000).nullable(),
@@ -107,7 +125,7 @@ export const publicVerifyStampLabelBodySchema = yup.object({
   result: yup
     .string()
     .oneOf(Object.values(STAMP_LABEL_VERIFICATION_RESULT))
-    .required(),
+    .nullable(),
   locationCode: yup.string().trim().max(128).nullable(),
   remarks: yup.string().trim().max(5000).nullable(),
 });
@@ -128,3 +146,28 @@ export const enforceStampLabelBodySchema = yup.object({
   caseNumber: yup.string().trim().max(128).nullable(),
   notes: yup.string().trim().max(5000).nullable(),
 });
+
+export const stampLabelBatchCreateBodySchema = yup.object({
+  batchNumber: yup.string().trim().max(128).nullable(),
+  organizationId: yup.string().uuid().nullable(),
+  status: yup
+    .string()
+    .oneOf(Object.values(STAMP_LABEL_BATCH_STATUS))
+    .default(STAMP_LABEL_BATCH_STATUS.GENERATED),
+  totalCount: yup.number().integer().min(0).default(0),
+  generatedCount: yup.number().integer().min(0).default(0),
+  issuedCount: yup.number().integer().min(0).default(0),
+  printedCount: yup.number().integer().min(0).default(0),
+  printedAt: yup.date().nullable(),
+  notes: yup.string().trim().max(5000).nullable(),
+  metadata: yup.object().nullable(),
+});
+
+export const stampLabelBatchUpdateBodySchema = yup.object({
+  status: yup.string().oneOf(Object.values(STAMP_LABEL_BATCH_STATUS)).nullable(),
+  printedCount: yup.number().integer().min(0).nullable(),
+  printedAt: yup.date().nullable(),
+  notes: yup.string().trim().max(5000).nullable(),
+  metadata: yup.object().nullable(),
+});
+

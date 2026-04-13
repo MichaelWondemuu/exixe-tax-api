@@ -30,6 +30,52 @@ export const StampLabel = (sequelize) => {
         allowNull: false,
         field: 'stamp_request_number',
       },
+      templateId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'template_id',
+      },
+      templateCode: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+        field: 'template_code',
+      },
+      templateVersion: {
+        type: DataTypes.STRING(32),
+        allowNull: true,
+        field: 'template_version',
+      },
+      templateLifecycleStatus: {
+        type: DataTypes.STRING(32),
+        allowNull: true,
+        field: 'template_lifecycle_status',
+      },
+      templateResolvedBy: {
+        type: DataTypes.STRING(32),
+        allowNull: true,
+        field: 'template_resolved_by',
+      },
+      templateQrEnabled: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        field: 'template_qr_enabled',
+      },
+      templateSerialPattern: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'template_serial_pattern',
+      },
+      templateSecurityFeatures: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: [],
+        field: 'template_security_features',
+      },
+      templateLabelStructure: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        field: 'template_label_structure',
+      },
       stampUid: {
         type: DataTypes.STRING(128),
         allowNull: false,
@@ -72,6 +118,16 @@ export const StampLabel = (sequelize) => {
         allowNull: true,
         field: 'operator_license_number',
       },
+      merchantId: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+        field: 'merchant_id',
+      },
+      merchantName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'merchant_name',
+      },
       ethiopiaRevenueOffice: {
         type: DataTypes.STRING(255),
         allowNull: true,
@@ -97,6 +153,11 @@ export const StampLabel = (sequelize) => {
         type: DataTypes.STRING(128),
         allowNull: true,
         field: 'batch_number',
+      },
+      batchId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'batch_id',
       },
       productionDate: {
         type: DataTypes.DATE,
@@ -258,9 +319,17 @@ export const StampLabel = (sequelize) => {
       as: 'stampRequest',
       constraints: false,
     });
+    model.belongsTo(models.StampLabelTemplate, {
+      foreignKey: 'templateId',
+      as: 'template',
+    });
     model.belongsTo(models.Product, {
       foreignKey: 'productId',
       as: 'product',
+    });
+    model.belongsTo(models.StampLabelBatch, {
+      foreignKey: 'batchId',
+      as: 'batch',
     });
     model.hasMany(models.StampLabelEvent, {
       foreignKey: 'stampLabelId',

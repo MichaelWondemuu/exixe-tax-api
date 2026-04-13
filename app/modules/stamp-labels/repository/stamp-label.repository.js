@@ -7,6 +7,15 @@ const STAMP_LABEL_ATTRIBUTES = [
   'organizationId',
   'stampRequestId',
   'stampRequestNumber',
+  'templateId',
+  'templateCode',
+  'templateVersion',
+  'templateLifecycleStatus',
+  'templateResolvedBy',
+  'templateQrEnabled',
+  'templateSerialPattern',
+  'templateSecurityFeatures',
+  'templateLabelStructure',
   'stampUid',
   'digitalLink',
   'codeFormat',
@@ -15,11 +24,14 @@ const STAMP_LABEL_ATTRIBUTES = [
   'operatorName',
   'operatorTin',
   'operatorLicenseNumber',
+  'merchantId',
+  'merchantName',
   'ethiopiaRevenueOffice',
   'productId',
   'productName',
   'packageLevel',
   'batchNumber',
+  'batchId',
   'productionDate',
   'forecastReference',
   'forecastSubmittedAt',
@@ -48,6 +60,27 @@ const STAMP_LABEL_ATTRIBUTES = [
 ];
 
 const STAMP_LABEL_INCLUDE = [
+  {
+    model: models.StampLabelBatch,
+    as: 'batch',
+    attributes: [
+      'id',
+      'batchNumber',
+      'status',
+      'totalCount',
+      'generatedCount',
+      'issuedCount',
+      'printedCount',
+      'printedAt',
+    ],
+    required: false,
+  },
+  {
+    model: models.StampLabelTemplate,
+    as: 'template',
+    attributes: ['id', 'code', 'version', 'lifecycleStatus', 'resolvedBy'],
+    required: false,
+  },
   {
     model: models.ExciseStampRequest,
     as: 'stampRequest',
@@ -151,5 +184,79 @@ export class StampLabelEventRepository extends BaseRepository {
         limit: 1000,
       },
     );
+  }
+}
+
+export class StampLabelBatchRepository extends BaseRepository {
+  constructor() {
+    super({ Model: models.StampLabelBatch });
+  }
+
+  findByBatchNumber(req, batchNumber) {
+    return this.findOne(req, { batchNumber });
+  }
+
+  findByIdDetailed(req, id) {
+    return this.findById(req, id, {
+      include: [
+        {
+          model: models.StampLabel,
+          as: 'stamps',
+          attributes: ['id', 'stampUid', 'status', 'batchNumber', 'issuedAt'],
+          required: false,
+        },
+      ],
+      order: [[{ model: models.StampLabel, as: 'stamps' }, 'createdAt', 'ASC']],
+    });
+  }
+}
+
+const STAMP_TEMPLATE_INCLUDE = [
+  {
+    model: models.Product,
+    as: 'product',
+    attributes: ['id', 'name', 'categoryId'],
+    required: false,
+  },
+  {
+    model: models.ProductVariant,
+    as: 'variant',
+    attributes: ['id', 'productId', 'name', 'sku'],
+    required: false,
+  },
+  {
+    model: models.Category,
+    as: 'category',
+    attributes: ['id', 'name', 'code'],
+    required: false,
+  },
+  {
+    model: models.StampLabelTemplateSecurityFeature,
+    as: 'securityFeatures',
+    attributes: ['id', 'templateId', 'featureCode'],
+    required: false,
+  },
+];
+
+export class StampLabelTemplateRepository extends BaseRepository {
+  constructor() {
+    super({ Model: models.StampLabelTemplate });
+  }
+
+  findAllDetailed(req, queryParams = {}) {
+    return this.findAll(
+      req,
+      {
+        include: STAMP_TEMPLATE_INCLUDE,
+        order: [['updatedAt', 'DESC']],
+      },
+      queryParams,
+    );
+  }
+
+  findByIdDetailed(req, id) {
+    return this.findById(req, id, {
+      include: STAMP_TEMPLATE_INCLUDE,
+    });
   }
 }

@@ -78,6 +78,26 @@ export const ExciseStampVerification = (sequelize) => {
         allowNull: true,
         field: 'remarks',
       },
+      merchantName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'merchant_name',
+      },
+      city: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+        field: 'city',
+      },
+      region: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+        field: 'region',
+      },
+      woreda: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+        field: 'woreda',
+      },
       verifiedAt: {
         type: DataTypes.DATE,
         allowNull: false,

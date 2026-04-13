@@ -41,6 +41,10 @@ export const buildStampVerificationRouter = ({
     stampVerificationController.getSummary,
   );
   adminRouter.get(
+    '/stamp-verifications/scans',
+    stampVerificationController.getAllScans,
+  );
+  adminRouter.get(
     '/stamp-verifications/:id',
     validateParams(idParamsSchema),
     stampVerificationController.getById,

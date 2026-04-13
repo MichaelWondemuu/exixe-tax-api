@@ -308,15 +308,23 @@ export class ExciseQueryService {
       recent,
       StampVerificationResponse.toResponse,
     );
+    const scanned = authentic + suspect + cancelledUi + notFound;
     return {
       totals: {
+        scanned,
         authentic,
         suspect,
         cancelledUi,
         notFound,
-        total: authentic + suspect + cancelledUi + notFound,
+        total: scanned,
       },
       recent: recentMapped.data || [],
     };
+  };
+
+  getAllStampScans = async (req, query = {}) => {
+    await ensureVerificationSchema();
+    const result = await this.verificationRepository.findAllDetailed(req, query);
+    return mapExciseDataResponse(result, StampVerificationResponse.toResponse);
   };
 }

@@ -14,8 +14,13 @@ import {
   generateStampLabelsBodySchema,
   issueStampLabelBodySchema,
   publicVerifyStampLabelBodySchema,
+  printStampLabelBatchBodySchema,
+  stampLabelBatchCreateBodySchema,
+  stampLabelBatchIdParamsSchema,
   stampLabelBatchParamsSchema,
+  stampLabelBatchUpdateBodySchema,
   stampLabelIdParamsSchema,
+  stampRequestIdParamsSchema,
   stampLabelUidParamsSchema,
   trackStampLabelBodySchema,
   verifyStampLabelBodySchema,
@@ -45,6 +50,21 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
     '/batch/:batchNumber',
     validateParams(stampLabelBatchParamsSchema),
     stampLabelController.getByBatchNumber,
+  );
+  router.get(
+    '/batches/:batchNumber',
+    validateParams(stampLabelBatchParamsSchema),
+    stampLabelController.getBatchByNumberEntity,
+  );
+  router.get(
+    '/request/:stampRequestId/batches',
+    validateParams(stampRequestIdParamsSchema),
+    stampLabelController.getBatchesByStampRequestId,
+  );
+  router.get(
+    '/request/:stampRequestId/batches/audit',
+    validateParams(stampRequestIdParamsSchema),
+    stampLabelController.getBatchesAuditByStampRequestId,
   );
   router.get(
     '/:id',
@@ -82,8 +102,8 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
   router.post(
     '/batch/:batchNumber/print',
     validateParams(stampLabelBatchParamsSchema),
-    validateBody(issueStampLabelBodySchema),
-    stampLabelController.issueByBatch,
+    validateBody(printStampLabelBatchBodySchema),
+    stampLabelController.printByBatch,
   );
   router.post(
     '/:id/assign',
@@ -133,6 +153,34 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
     validateParams(stampLabelIdParamsSchema),
     validateBody(enforceStampLabelBodySchema),
     stampLabelController.enforce,
+  );
+  adminRouter.post(
+    '/batch/:batchNumber/enforce',
+    validateParams(stampLabelBatchParamsSchema),
+    validateBody(enforceStampLabelBodySchema),
+    stampLabelController.enforceByBatch,
+  );
+  adminRouter.get('/batches', stampLabelController.listBatches);
+  adminRouter.get(
+    '/batches/:id',
+    validateParams(stampLabelBatchIdParamsSchema),
+    stampLabelController.getBatchById,
+  );
+  adminRouter.post(
+    '/batches',
+    validateBody(stampLabelBatchCreateBodySchema),
+    stampLabelController.createBatch,
+  );
+  adminRouter.patch(
+    '/batches/:id',
+    validateParams(stampLabelBatchIdParamsSchema),
+    validateBody(stampLabelBatchUpdateBodySchema),
+    stampLabelController.updateBatch,
+  );
+  adminRouter.delete(
+    '/batches/:id',
+    validateParams(stampLabelBatchIdParamsSchema),
+    stampLabelController.deleteBatch,
   );
 
   return {

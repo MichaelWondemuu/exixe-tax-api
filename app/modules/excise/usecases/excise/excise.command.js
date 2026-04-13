@@ -295,10 +295,21 @@ async function ensureVerificationSchema() {
         "supplier_document_number" VARCHAR(128),
         "verification_evidence" JSONB NOT NULL DEFAULT '{}'::jsonb,
         "remarks" TEXT,
+        "merchant_name" VARCHAR(255),
+        "city" VARCHAR(128),
+        "region" VARCHAR(128),
+        "woreda" VARCHAR(128),
         "verified_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+    await sequelize.query(`
+      ALTER TABLE "excise_stamp_verifications"
+      ADD COLUMN IF NOT EXISTS "merchant_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "city" VARCHAR(128),
+      ADD COLUMN IF NOT EXISTS "region" VARCHAR(128),
+      ADD COLUMN IF NOT EXISTS "woreda" VARCHAR(128)
     `);
   })().catch((error) => {
     verificationSchemaReadyPromise = null;
@@ -406,6 +417,17 @@ export class ExciseCommandService {
       const normalized = this.normalizeUppercaseStringArray(value);
       if (normalized.length === 0) {
         throw new HttpError(400, 'VALIDATION_ERROR', `${key} cannot be empty`);
+      }
+      return normalized;
+    }
+    if (key === EXCISE_CONFIG_KEYS.STAMP_LABEL_DIGITAL_LINK_BASE_URL) {
+      const normalized = String(value || '').trim();
+      if (!normalized) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          `${key} must be a non-empty string URL`,
+        );
       }
       return normalized;
     }
@@ -1366,21 +1388,31 @@ export class ExciseCommandService {
 
   createStampVerification = async (req, body, { isPublic = false } = {}) => {
     await ensureVerificationSchema();
-    const actorType = trimOrNull(body.actorType);
+    const actorTypeRaw = trimOrNull(body.actorType);
     const channel = trimOrNull(body.channel) || STAMP_VERIFICATION_CHANNEL.API;
-    const result = trimOrNull(body.result);
+    const requestedResult = trimOrNull(body.result);
 
+    const actorType = isPublic
+      ? STAMP_VERIFICATION_ACTOR_TYPE.PUBLIC
+      : actorTypeRaw;
     if (!Object.values(STAMP_VERIFICATION_ACTOR_TYPE).includes(actorType)) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'actorType is invalid');
     }
     if (!Object.values(STAMP_VERIFICATION_CHANNEL).includes(channel)) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'channel is invalid');
     }
-    if (!Object.values(STAMP_VERIFICATION_RESULT).includes(result)) {
+    if (
+      requestedResult &&
+      !Object.values(STAMP_VERIFICATION_RESULT).includes(requestedResult)
+    ) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'result is invalid');
     }
 
-    if (isPublic && actorType !== STAMP_VERIFICATION_ACTOR_TYPE.PUBLIC) {
+    if (
+      isPublic &&
+      actorTypeRaw &&
+      actorTypeRaw !== STAMP_VERIFICATION_ACTOR_TYPE.PUBLIC
+    ) {
       throw new HttpError(
         400,
         'VALIDATION_ERROR',
@@ -1421,6 +1453,31 @@ export class ExciseCommandService {
       }
     }
 
+    const scannedStamp = await models.StampLabel.findOne({
+      where: { stampUid: stampIdentifier },
+      attributes: ['id', 'status'],
+    });
+    let resolvedResult = requestedResult;
+    if (!resolvedResult) {
+      if (!scannedStamp) {
+        resolvedResult = STAMP_VERIFICATION_RESULT.NOT_FOUND;
+      } else if (scannedStamp.status === 'REVOKED') {
+        resolvedResult = STAMP_VERIFICATION_RESULT.CANCELLED_UI;
+      } else {
+        resolvedResult = STAMP_VERIFICATION_RESULT.AUTHENTIC;
+      }
+    }
+    if (
+      resolvedResult === STAMP_VERIFICATION_RESULT.NOT_FOUND &&
+      scannedStamp
+    ) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'NOT_FOUND cannot be used when the stamp exists',
+      );
+    }
+
     const created = await this.verificationRepository.create(req, {
       verificationNumber: await allocateUniqueReference(
         this.verificationRepository.getModel(),
@@ -1430,7 +1487,7 @@ export class ExciseCommandService {
       facilityId: facility?.id ?? null,
       actorType,
       channel,
-      result,
+      result: resolvedResult,
       stampIdentifier,
       productDescription: trimOrNull(body.productDescription),
       supplierName,
@@ -1443,6 +1500,10 @@ export class ExciseCommandService {
           ? body.verificationEvidence
           : {},
       remarks: trimOrNull(body.remarks),
+      merchantName: trimOrNull(body.merchantName),
+      city: trimOrNull(body.city),
+      region: trimOrNull(body.region),
+      woreda: trimOrNull(body.woreda),
       verifiedAt: body.verifiedAt
         ? ensureFutureDate(body.verifiedAt, 'verifiedAt')
         : new Date(),

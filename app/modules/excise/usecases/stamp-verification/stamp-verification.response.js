@@ -19,6 +19,10 @@ export class StampVerificationResponse {
     response.supplierDocumentNumber = e.supplierDocumentNumber;
     response.verificationEvidence = e.verificationEvidence;
     response.remarks = e.remarks;
+    response.merchantName = e.merchantName;
+    response.city = e.city;
+    response.region = e.region;
+    response.woreda = e.woreda;
     response.verifiedAt = e.verifiedAt;
     if (e.facility) {
       response.facility = FacilityResponse.toBrief(e.facility);

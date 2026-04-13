@@ -48,6 +48,30 @@ export class StampLabelController {
     }
   };
 
+  getBatchesByStampRequestId = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelQueryService.getBatchesByStampRequestId(
+        req,
+        req.params.stampRequestId,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getBatchesAuditByStampRequestId = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelQueryService.getBatchesAuditByStampRequestId(
+        req,
+        req.params.stampRequestId,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getAuditTrail = async (req, res, next) => {
     try {
       const result = await this.stampLabelQueryService.getAuditTrail(req, req.params.id);
@@ -103,6 +127,19 @@ export class StampLabelController {
   issueByBatch = async (req, res, next) => {
     try {
       const result = await this.stampLabelCommandService.issueByBatch(
+        req,
+        req.params.batchNumber,
+        req.body || {},
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  printByBatch = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelCommandService.printByBatch(
         req,
         req.params.batchNumber,
         req.body || {},
@@ -220,6 +257,80 @@ export class StampLabelController {
         req.params.id,
         req.body || {},
       );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  enforceByBatch = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelCommandService.enforceByBatch(
+        req,
+        req.params.batchNumber,
+        req.body || {},
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  listBatches = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelQueryService.listBatches(req, req.query);
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getBatchById = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelQueryService.getBatchById(req, req.params.id);
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getBatchByNumberEntity = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelQueryService.getBatchByNumber(
+        req,
+        req.params.batchNumber,
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createBatch = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelCommandService.createBatch(req, req.body || {});
+      res.status(201).json(formatResponse(result, 201));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateBatch = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelCommandService.updateBatch(
+        req,
+        req.params.id,
+        req.body || {},
+      );
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteBatch = async (req, res, next) => {
+    try {
+      const result = await this.stampLabelCommandService.deleteBatch(req, req.params.id);
       res.json(formatResponse(result));
     } catch (error) {
       next(error);

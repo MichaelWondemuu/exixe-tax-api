@@ -77,6 +77,14 @@ function buildDetailPayload(data) {
   if (subCity != null) out.subCity = subCity;
   const tin = get('tin', 'sellerTin');
   if (tin != null) out.tin = tin;
+  const operatorType = get('operatorType');
+  if (operatorType != null) out.operatorType = operatorType;
+  const operatorLicenseNumber = get('operatorLicenseNumber');
+  if (operatorLicenseNumber != null) out.operatorLicenseNumber = operatorLicenseNumber;
+  const merchantId = get('merchantId');
+  if (merchantId != null) out.merchantId = merchantId;
+  const merchantName = get('merchantName');
+  if (merchantName != null) out.merchantName = merchantName;
   const vatNumber = get('vatNumber', 'sellerVatNumber');
   if (vatNumber != null) out.vatNumber = vatNumber;
   const wereda = get('wereda', 'sellerWereda');

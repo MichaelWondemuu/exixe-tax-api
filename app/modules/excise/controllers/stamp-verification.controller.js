@@ -73,6 +73,15 @@ export class StampVerificationController {
     }
   };
 
+  getAllScans = async (req, res, next) => {
+    try {
+      const result = await this.stampVerificationQueryService.getAllScans(req, req.query);
+      res.json(formatResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   createPublic = async (req, res, next) => {
     try {
       const normalizedBody = normalizePublicScanPayload(req.body || {});
