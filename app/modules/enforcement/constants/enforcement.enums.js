@@ -32,3 +32,14 @@ export const PRODUCT_RECALL_SEVERITY = Object.freeze({
   HIGH: 'HIGH',
   CRITICAL: 'CRITICAL',
 });
+
+export const RECONCILIATION_RUN_STATUS = Object.freeze({
+  COMPLETED: 'COMPLETED',
+});
+
+export const RECONCILIATION_ITEM_SEVERITY = Object.freeze({
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+});

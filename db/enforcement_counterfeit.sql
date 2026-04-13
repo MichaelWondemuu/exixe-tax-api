@@ -136,3 +136,43 @@ CREATE INDEX IF NOT EXISTS idx_stock_snapshots_org_counted_at
   ON stock_snapshots (organization_id, counted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stock_snapshots_product_counted_at
   ON stock_snapshots (product_id, counted_at DESC);
+
+-- Reconciliation runs (audit trail for production vs stock checks)
+CREATE TABLE IF NOT EXISTS reconciliation_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_number VARCHAR(64) NOT NULL UNIQUE,
+  organization_id UUID NOT NULL REFERENCES organizations (id),
+  facility_id UUID REFERENCES excise_facilities (id),
+  period_start TIMESTAMPTZ NOT NULL,
+  period_end TIMESTAMPTZ NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'COMPLETED',
+  total_items INTEGER NOT NULL DEFAULT 0,
+  total_variance_qty NUMERIC(18, 3) NOT NULL DEFAULT 0,
+  created_by_user_id UUID NOT NULL REFERENCES users (id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS reconciliation_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reconciliation_run_id UUID NOT NULL REFERENCES reconciliation_runs (id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations (id),
+  facility_id UUID NOT NULL REFERENCES excise_facilities (id),
+  product_id UUID NOT NULL REFERENCES products (id),
+  product_variant_id UUID REFERENCES product_variants (id),
+  lot_or_batch_code VARCHAR(128),
+  actual_produced_qty NUMERIC(18, 3) NOT NULL,
+  quantity_on_hand NUMERIC(18, 3) NOT NULL,
+  variance_qty NUMERIC(18, 3) NOT NULL,
+  variance_percent NUMERIC(8, 2),
+  severity VARCHAR(32) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reconciliation_runs_org_created_at
+  ON reconciliation_runs (organization_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reconciliation_items_run
+  ON reconciliation_items (reconciliation_run_id);
+CREATE INDEX IF NOT EXISTS idx_reconciliation_items_severity
+  ON reconciliation_items (severity);

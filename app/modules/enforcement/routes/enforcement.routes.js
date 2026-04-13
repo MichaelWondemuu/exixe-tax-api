@@ -30,6 +30,10 @@ import {
   stockSnapshotBodySchema,
   stockSnapshotPatchSchema,
 } from '../schemas/stock-snapshot.schemas.js';
+import {
+  reconciliationRunCreateBodySchema,
+  reconciliationRunItemsQuerySchema,
+} from '../schemas/reconciliation.schemas.js';
 
 /**
  * @param {{
@@ -38,6 +42,7 @@ import {
  *   productRecallController: import('../controllers/product-recall.controller.js').ProductRecallController;
  *   productionRecordController: import('../controllers/production-record.controller.js').ProductionRecordController;
  *   stockSnapshotController: import('../controllers/stock-snapshot.controller.js').StockSnapshotController;
+ *   reconciliationController: import('../controllers/reconciliation.controller.js').ReconciliationController;
  * }} deps
  */
 export const buildEnforcementRouter = ({
@@ -46,6 +51,7 @@ export const buildEnforcementRouter = ({
   productRecallController,
   productionRecordController,
   stockSnapshotController,
+  reconciliationController,
 }) => {
   const router = express.Router();
   const adminRouter = express.Router();
@@ -180,6 +186,23 @@ export const buildEnforcementRouter = ({
     '/recalls/:id/close',
     validateParams(idParamsSchema),
     productRecallController.closeRecall,
+  );
+  adminRouter.post(
+    '/reconciliations/runs',
+    validateBody(reconciliationRunCreateBodySchema),
+    reconciliationController.createRun,
+  );
+  adminRouter.get('/reconciliations/runs', reconciliationController.listRuns);
+  adminRouter.get(
+    '/reconciliations/runs/:id',
+    validateParams(idParamsSchema),
+    reconciliationController.getRunById,
+  );
+  adminRouter.get(
+    '/reconciliations/runs/:id/items',
+    validateParams(idParamsSchema),
+    validateQuery(reconciliationRunItemsQuerySchema),
+    reconciliationController.listRunItems,
   );
 
   router.use('/admin', adminRouter);

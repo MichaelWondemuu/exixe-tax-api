@@ -22,6 +22,11 @@ import { StockSnapshotRepository } from './repository/stock-snapshot.repository.
 import { StockSnapshotCommandService } from './usecases/stock-snapshot.command.js';
 import { StockSnapshotQueryService } from './usecases/stock-snapshot.query.js';
 import { StockSnapshotController } from './controllers/stock-snapshot.controller.js';
+import { ReconciliationRunRepository } from './repository/reconciliation-run.repository.js';
+import { ReconciliationItemRepository } from './repository/reconciliation-item.repository.js';
+import { ReconciliationCommandService } from './usecases/reconciliation.command.js';
+import { ReconciliationQueryService } from './usecases/reconciliation.query.js';
+import { ReconciliationController } from './controllers/reconciliation.controller.js';
 import { buildEnforcementRouter } from './routes/enforcement.routes.js';
 
 export const createEnforcementModule = () => {
@@ -39,6 +44,12 @@ export const createEnforcementModule = () => {
   });
   const stockSnapshotRepository = new StockSnapshotRepository({
     Model: models.StockSnapshot,
+  });
+  const reconciliationRunRepository = new ReconciliationRunRepository({
+    Model: models.ReconciliationRun,
+  });
+  const reconciliationItemRepository = new ReconciliationItemRepository({
+    Model: models.ReconciliationItem,
   });
 
   const counterfeitReportCommandService = new CounterfeitReportCommandService({
@@ -69,6 +80,14 @@ export const createEnforcementModule = () => {
     stockSnapshotRepository,
   });
   const stockSnapshotQueryService = new StockSnapshotQueryService();
+  const reconciliationCommandService = new ReconciliationCommandService({
+    reconciliationRunRepository,
+    reconciliationItemRepository,
+  });
+  const reconciliationQueryService = new ReconciliationQueryService({
+    reconciliationRunRepository,
+    reconciliationItemRepository,
+  });
   const counterfeitCaseQueryService = new CounterfeitCaseQueryService();
   const counterfeitCaseCommandService = new CounterfeitCaseCommandService({
     counterfeitCaseQueryService,
@@ -96,6 +115,10 @@ export const createEnforcementModule = () => {
     stockSnapshotCommandService,
     stockSnapshotQueryService,
   });
+  const reconciliationController = new ReconciliationController({
+    reconciliationCommandService,
+    reconciliationQueryService,
+  });
 
   const router = createAsyncRouter();
   router.use(
@@ -106,6 +129,7 @@ export const createEnforcementModule = () => {
       productRecallController,
       productionRecordController,
       stockSnapshotController,
+      reconciliationController,
     }),
   );
 

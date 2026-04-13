@@ -62,6 +62,8 @@ import { CounterfeitCaseStampVerification } from '../../modules/enforcement/pers
 import { ProductRecall } from '../../modules/enforcement/persistences/product-recall.model.js';
 import { ProductionRecord } from '../../modules/enforcement/persistences/production-record.model.js';
 import { StockSnapshot } from '../../modules/enforcement/persistences/stock-snapshot.model.js';
+import { ReconciliationRun } from '../../modules/enforcement/persistences/reconciliation-run.model.js';
+import { ReconciliationItem } from '../../modules/enforcement/persistences/reconciliation-item.model.js';
 
 // Initialize all models
 export const TokenRevocationModel = TokenRevocation(sequelize);
@@ -127,6 +129,8 @@ export const CounterfeitCaseStampVerificationModel =
 export const ProductRecallModel = ProductRecall(sequelize);
 export const ProductionRecordModel = ProductionRecord(sequelize);
 export const StockSnapshotModel = StockSnapshot(sequelize);
+export const ReconciliationRunModel = ReconciliationRun(sequelize);
+export const ReconciliationItemModel = ReconciliationItem(sequelize);
 
 export const models = {
   TokenRevocation: TokenRevocationModel,
@@ -184,6 +188,8 @@ export const models = {
   ProductRecall: ProductRecallModel,
   ProductionRecord: ProductionRecordModel,
   StockSnapshot: StockSnapshotModel,
+  ReconciliationRun: ReconciliationRunModel,
+  ReconciliationItem: ReconciliationItemModel,
 };
 
 Object.values(models).forEach((model) => {
