@@ -1,33 +1,59 @@
 import { DataTypes } from 'sequelize';
+import { getBaseFields, getBaseOptions } from '../../../shared/db/base.model.js';
 import {
   STAMP_PAYMENT_STATUS,
   STAMP_REQUEST_STATUS,
 } from '../constants/excise.enums.js';
 
 export const ExciseStampRequest = (sequelize) => {
+  const base = getBaseFields();
   const model = sequelize.define(
     'ExciseStampRequest',
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+      ...base,
+      organizationId: {
+        ...base.organizationId,
+        allowNull: true,
       },
       requestNumber: {
         type: DataTypes.STRING(64),
         allowNull: false,
-        unique: true,
         field: 'request_number',
-      },
-      organizationId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        field: 'organization_id',
       },
       facilityId: {
         type: DataTypes.UUID,
         allowNull: false,
         field: 'facility_id',
+      },
+      productId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'product_id',
+      },
+      productName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'product_name',
+      },
+      variantId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'variant_id',
+      },
+      variantName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'variant_name',
+      },
+      uomId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'uom_id',
+      },
+      uomName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'uom_name',
       },
       goodsCategory: {
         type: DataTypes.STRING(128),
@@ -43,6 +69,13 @@ export const ExciseStampRequest = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         field: 'quantity',
+      },
+      generatedQuantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'generated_quantity',
+        comment: 'Count of stamp labels generated for this request (capped at quantity)',
       },
       stampFeeAmount: {
         type: DataTypes.DECIMAL(18, 2),
@@ -138,26 +171,16 @@ export const ExciseStampRequest = (sequelize) => {
         allowNull: true,
         field: 'fulfilled_at',
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'created_at',
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        field: 'updated_at',
-      },
     },
     {
-      sequelize,
-      tableName: 'excise_stamp_requests',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      underscored: true,
+      ...getBaseOptions('excise_stamp_requests'),
+      indexes: [
+        {
+          unique: true,
+          fields: [{ name: 'request_number' }],
+          name: 'unique_excise_stamp_request_number',
+        },
+      ],
     },
   );
 
@@ -169,6 +192,18 @@ export const ExciseStampRequest = (sequelize) => {
     model.belongsTo(models.ExciseFacility, {
       foreignKey: 'facilityId',
       as: 'facility',
+    });
+    model.belongsTo(models.Product, {
+      foreignKey: 'productId',
+      as: 'product',
+    });
+    model.belongsTo(models.ProductVariant, {
+      foreignKey: 'variantId',
+      as: 'variant',
+    });
+    model.belongsTo(models.Measurement, {
+      foreignKey: 'uomId',
+      as: 'uom',
     });
   };
 

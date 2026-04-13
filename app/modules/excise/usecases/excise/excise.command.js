@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { HttpError } from '../../../../shared/utils/http-error.js';
 import { sequelize } from '../../../../shared/db/database.js';
+import { models } from '../../../../shared/db/data-source.js';
 import { getUser } from '../../../auth/middleware/user-context.js';
 import {
   DELIVERY_NOTE_STATUS,
@@ -17,6 +18,18 @@ import {
   STAMP_WASTAGE_REASON,
   STAMP_REQUEST_STATUS,
 } from '../../constants/excise.enums.js';
+import { ensureStampRequestSchema } from './ensure-stamp-request-schema.js';
+import {
+  ensureExciseConfigSchema,
+  EXCISE_CONFIG_KEYS,
+  EXCISE_DEFAULT_CONFIGS,
+} from './ensure-excise-config-schema.js';
+import { DeliveryNoteResponse } from '../delivery-note/delivery-note.response.js';
+import { FacilityResponse } from '../facility/facility.response.js';
+import { ForecastResponse } from '../forecast/forecast.response.js';
+import { StampRequestResponse } from '../stamp-request/stamp-request.response.js';
+import { StampStockEventResponse } from '../stamp-stock-event/stamp-stock-event.response.js';
+import { StampVerificationResponse } from '../stamp-verification/stamp-verification.response.js';
 
 const DELIVERY_NOTE_TRANSITIONS = Object.freeze({
   [DELIVERY_NOTE_STATUS.DRAFT]: [
@@ -71,9 +84,6 @@ const STOCK_EVENT_TRANSITIONS = Object.freeze({
   [STAMP_STOCK_EVENT_STATUS.CANCELLED]: [],
 });
 
-const MIN_STAMP_APPLICATION_LEAD_DAYS = 29;
-const TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS = 5;
-let stampSchemaReadyPromise = null;
 let forecastSchemaReadyPromise = null;
 let stockEventSchemaReadyPromise = null;
 let verificationSchemaReadyPromise = null;
@@ -121,34 +131,6 @@ function addWorkingDays(baseDate, daysToAdd) {
     }
   }
   return out;
-}
-
-async function ensureStampRequestSchema() {
-  if (stampSchemaReadyPromise) {
-    return stampSchemaReadyPromise;
-  }
-
-  stampSchemaReadyPromise = (async () => {
-    await sequelize.query(`
-      ALTER TABLE "excise_stamp_requests"
-      ADD COLUMN IF NOT EXISTS "stamp_fee_amount" DECIMAL(18,2),
-      ADD COLUMN IF NOT EXISTS "stamp_fee_currency" VARCHAR(8),
-      ADD COLUMN IF NOT EXISTS "payment_status" VARCHAR(32) DEFAULT 'UNPAID',
-      ADD COLUMN IF NOT EXISTS "payment_reference" VARCHAR(128),
-      ADD COLUMN IF NOT EXISTS "payment_proof_url" VARCHAR(500),
-      ADD COLUMN IF NOT EXISTS "paid_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "submitted_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "review_due_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "reviewed_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "reviewed_by_user_id" UUID,
-      ADD COLUMN IF NOT EXISTS "review_sla_breached" BOOLEAN DEFAULT FALSE
-    `);
-  })().catch((error) => {
-    stampSchemaReadyPromise = null;
-    throw error;
-  });
-
-  return stampSchemaReadyPromise;
 }
 
 function toUtcMonthStart(date) {
@@ -364,6 +346,7 @@ export class ExciseCommandService {
    *  forecastRepository: import('../../repository/forecast.repository.js').ExciseStampForecastRepository;
    *  stockEventRepository: import('../../repository/stamp-stock-event.repository.js').ExciseStampStockEventRepository;
    *  verificationRepository: import('../../repository/stamp-verification.repository.js').ExciseStampVerificationRepository;
+   *  configRepository: import('../../repository/config.repository.js').ExciseConfigRepository;
    * }} deps
    */
   constructor({
@@ -373,6 +356,7 @@ export class ExciseCommandService {
     forecastRepository,
     stockEventRepository,
     verificationRepository,
+    configRepository,
   }) {
     this.facilityRepository = facilityRepository;
     this.deliveryNoteRepository = deliveryNoteRepository;
@@ -380,7 +364,162 @@ export class ExciseCommandService {
     this.forecastRepository = forecastRepository;
     this.stockEventRepository = stockEventRepository;
     this.verificationRepository = verificationRepository;
+    this.configRepository = configRepository;
   }
+
+  getDefaultConfigValue(key) {
+    return EXCISE_DEFAULT_CONFIGS[key]?.value;
+  }
+
+  normalizeConfigKey(keyText) {
+    return String(keyText || '')
+      .trim()
+      .toUpperCase();
+  }
+
+  normalizeUppercaseStringArray(values = []) {
+    return [...new Set(values.map((x) => String(x || '').trim().toUpperCase()).filter(Boolean))];
+  }
+
+  sanitizeConfigValue(key, value) {
+    if (value === undefined) {
+      throw new HttpError(400, 'VALIDATION_ERROR', 'value is required');
+    }
+    if (
+      key === EXCISE_CONFIG_KEYS.STAMP_REQUEST_MIN_LEAD_TIME ||
+      key === EXCISE_CONFIG_KEYS.STAMP_REQUEST_MIN_LEAD_DAYS ||
+      key === EXCISE_CONFIG_KEYS.TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS
+    ) {
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw new HttpError(400, 'VALIDATION_ERROR', `${key} must be a positive integer`);
+      }
+      return parsed;
+    }
+    if (
+      key === EXCISE_CONFIG_KEYS.ELIGIBLE_EXCISE_CATEGORY_CODES ||
+      key === EXCISE_CONFIG_KEYS.ELIGIBLE_EXCISE_PRODUCT_TYPES
+    ) {
+      if (!Array.isArray(value)) {
+        throw new HttpError(400, 'VALIDATION_ERROR', `${key} must be an array of strings`);
+      }
+      const normalized = this.normalizeUppercaseStringArray(value);
+      if (normalized.length === 0) {
+        throw new HttpError(400, 'VALIDATION_ERROR', `${key} cannot be empty`);
+      }
+      return normalized;
+    }
+    return value;
+  }
+
+  validateConfigKey(key) {
+    if (!Object.values(EXCISE_CONFIG_KEYS).includes(key)) {
+      throw new HttpError(400, 'VALIDATION_ERROR', `Unsupported config key: ${key}`);
+    }
+  }
+
+  getConfigValueByKey = async (req, key) => {
+    await ensureExciseConfigSchema();
+    const entity = await this.configRepository.findOne(req, { key });
+    if (!entity) {
+      return this.getDefaultConfigValue(key);
+    }
+    return entity.value;
+  };
+
+  getPositiveIntConfig = async (req, key) => {
+    const fallback = Number(this.getDefaultConfigValue(key));
+    const raw = await this.getConfigValueByKey(req, key);
+    const out = Number(raw);
+    if (!Number.isInteger(out) || out <= 0) {
+      return fallback;
+    }
+    return out;
+  };
+
+  getUppercaseSetConfig = async (req, key) => {
+    const fallback = this.normalizeUppercaseStringArray(this.getDefaultConfigValue(key) || []);
+    const raw = await this.getConfigValueByKey(req, key);
+    if (!Array.isArray(raw)) {
+      return new Set(fallback);
+    }
+    const normalized = this.normalizeUppercaseStringArray(raw);
+    return new Set(normalized.length > 0 ? normalized : fallback);
+  };
+
+  getMinLeadDaysConfig = async (req) => {
+    const preferred = await this.getPositiveIntConfig(
+      req,
+      EXCISE_CONFIG_KEYS.STAMP_REQUEST_MIN_LEAD_TIME,
+    );
+    if (Number.isInteger(preferred) && preferred > 0) {
+      return preferred;
+    }
+    return this.getPositiveIntConfig(req, EXCISE_CONFIG_KEYS.STAMP_REQUEST_MIN_LEAD_DAYS);
+  };
+
+  createConfig = async (req, body) => {
+    await ensureExciseConfigSchema();
+    const key = this.normalizeConfigKey(body.key);
+    this.validateConfigKey(key);
+
+    const existing = await this.configRepository.findOne(req, { key });
+    if (existing) {
+      throw new HttpError(409, 'CONFIG_ALREADY_EXISTS', 'Excise config already exists');
+    }
+
+    const created = await this.configRepository.create(req, {
+      key,
+      value: this.sanitizeConfigValue(key, body.value),
+      description: trimOrNull(body.description) || null,
+      isEditable: body.isEditable !== undefined ? Boolean(body.isEditable) : true,
+    });
+    return created;
+  };
+
+  updateConfig = async (req, keyText, body) => {
+    await ensureExciseConfigSchema();
+    const key = this.normalizeConfigKey(keyText);
+    this.validateConfigKey(key);
+
+    const current = await this.configRepository.findOne(req, { key });
+    if (!current) {
+      throw new HttpError(404, 'NOT_FOUND', 'Excise config not found');
+    }
+    if (!current.isEditable) {
+      throw new HttpError(403, 'FORBIDDEN', 'Excise config is not editable');
+    }
+
+    const patch = {
+      value: this.sanitizeConfigValue(key, body.value),
+    };
+    if (body.description !== undefined) {
+      patch.description = trimOrNull(body.description);
+    }
+    if (body.isEditable !== undefined) {
+      patch.isEditable = Boolean(body.isEditable);
+    }
+
+    await this.configRepository.update(req, current.id, patch);
+    return this.configRepository.findOne(req, { key });
+  };
+
+  deleteConfig = async (req, keyText) => {
+    await ensureExciseConfigSchema();
+    const key = this.normalizeConfigKey(keyText);
+    this.validateConfigKey(key);
+
+    const current = await this.configRepository.findOne(req, { key });
+    if (!current) {
+      throw new HttpError(404, 'NOT_FOUND', 'Excise config not found');
+    }
+    if (!current.isEditable) {
+      throw new HttpError(403, 'FORBIDDEN', 'Excise config is not editable');
+    }
+
+    await this.configRepository.delete(req, current.id);
+    return { message: 'Excise config deleted successfully' };
+  };
 
   createFacility = async (req, body) => {
     const payload = {
@@ -428,7 +567,9 @@ export class ExciseCommandService {
     }
 
     const created = await this.facilityRepository.create(req, payload);
-    return this.facilityRepository.findByIdDetailed(req, created.id);
+    return FacilityResponse.toResponse(
+      await this.facilityRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateFacility = async (req, id, body) => {
@@ -458,7 +599,9 @@ export class ExciseCommandService {
     if (!updated) {
       throw new HttpError(404, 'NOT_FOUND', 'Facility not found');
     }
-    return this.facilityRepository.findByIdDetailed(req, id);
+    return FacilityResponse.toResponse(
+      await this.facilityRepository.findByIdDetailed(req, id),
+    );
   };
 
   createDeliveryNote = async (req, body) => {
@@ -527,7 +670,9 @@ export class ExciseCommandService {
     };
 
     const created = await this.deliveryNoteRepository.create(req, payload);
-    return this.deliveryNoteRepository.findByIdDetailed(req, created.id);
+    return DeliveryNoteResponse.toResponse(
+      await this.deliveryNoteRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateDeliveryNoteStatus = async (req, id, body) => {
@@ -560,32 +705,49 @@ export class ExciseCommandService {
     }
 
     await this.deliveryNoteRepository.update(req, id, patch);
-    return this.deliveryNoteRepository.findByIdDetailed(req, id);
+    return DeliveryNoteResponse.toResponse(
+      await this.deliveryNoteRepository.findByIdDetailed(req, id),
+    );
   };
 
   createStampRequest = async (req, body) => {
     await ensureStampRequestSchema();
+    await ensureExciseConfigSchema();
     const facility = await this.facilityRepository.findByIdDetailed(req, body.facilityId);
     if (!facility) {
       throw new HttpError(404, 'NOT_FOUND', 'Facility not found');
     }
 
     const requiredByDate = ensureFutureDate(body.requiredByDate, 'requiredByDate');
-    const plannedProductionOrImportDate = body.plannedProductionOrImportDate
-      ? ensureFutureDate(
-          body.plannedProductionOrImportDate,
-          'plannedProductionOrImportDate',
-        )
-      : null;
+    const plannedProductionOrImportDate = ensureFutureDate(
+      body.plannedProductionOrImportDate,
+      'plannedProductionOrImportDate',
+    );
 
     const now = new Date();
+    const minLeadDays = await this.getMinLeadDaysConfig(req);
     const leadTimeMs = requiredByDate.getTime() - now.getTime();
-    const minimumLeadTimeMs = MIN_STAMP_APPLICATION_LEAD_DAYS * 24 * 60 * 60 * 1000;
+    const minimumLeadTimeMs = minLeadDays * 24 * 60 * 60 * 1000;
     if (leadTimeMs < minimumLeadTimeMs) {
       throw new HttpError(
         400,
         'STAMP_REQUEST_MIN_LEAD_TIME',
-        `requiredByDate must be at least ${MIN_STAMP_APPLICATION_LEAD_DAYS} days from now`,
+        `requiredByDate must be at least ${minLeadDays} days from now`,
+      );
+    }
+    const plannedLeadTimeMs = plannedProductionOrImportDate.getTime() - now.getTime();
+    if (plannedLeadTimeMs < minimumLeadTimeMs) {
+      throw new HttpError(
+        400,
+        'STAMP_REQUEST_MIN_LEAD_TIME',
+        `plannedProductionOrImportDate must be at least ${minLeadDays} days from now`,
+      );
+    }
+    if (requiredByDate.getTime() > plannedProductionOrImportDate.getTime()) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'requiredByDate cannot be later than plannedProductionOrImportDate',
       );
     }
 
@@ -594,6 +756,70 @@ export class ExciseCommandService {
       throw new HttpError(400, 'VALIDATION_ERROR', 'quantity must be a positive integer');
     }
 
+    const product = await models.Product.findByPk(body.productId, {
+      attributes: ['id', 'name', 'categoryId', 'productTypeId', 'measurementId'],
+      include: [
+        { model: models.Category, as: 'category', attributes: ['id', 'name', 'code'] },
+        { model: models.ProductType, as: 'productType', attributes: ['id', 'name'] },
+        { model: models.Measurement, as: 'measurement', attributes: ['id', 'name', 'shortForm'] },
+      ],
+    });
+    if (!product) {
+      throw new HttpError(404, 'NOT_FOUND', 'Product not found');
+    }
+
+    const variant = await models.ProductVariant.findByPk(body.variantId, {
+      attributes: ['id', 'productId', 'name', 'sku', 'unitValue'],
+    });
+    if (!variant) {
+      throw new HttpError(404, 'NOT_FOUND', 'Variant not found');
+    }
+    if (variant.productId !== product.id) {
+      throw new HttpError(
+        400,
+        'VALIDATION_ERROR',
+        'variantId does not belong to the provided productId',
+      );
+    }
+
+    const productName = trimOrNull(product.name);
+    const variantName = trimOrNull(variant.name);
+    const uomId = product.measurement?.id ?? null;
+    const uomName = trimOrNull(product.measurement?.shortForm || product.measurement?.name);
+    const productCategoryCode = trimOrNull(product.category?.code);
+    const productTypeNameNormalized = String(product.productType?.name || '')
+      .trim()
+      .toUpperCase();
+    const eligibleCategoryCodes = await this.getUppercaseSetConfig(
+      req,
+      EXCISE_CONFIG_KEYS.ELIGIBLE_EXCISE_CATEGORY_CODES,
+    );
+    if (
+      !productCategoryCode ||
+      !eligibleCategoryCodes.has(String(productCategoryCode).toUpperCase())
+    ) {
+      throw new HttpError(
+        400,
+        'PRODUCT_NOT_EXCISABLE',
+        'Selected product category is not eligible for excise stamp requests',
+      );
+    }
+    const eligibleProductTypes = await this.getUppercaseSetConfig(
+      req,
+      EXCISE_CONFIG_KEYS.ELIGIBLE_EXCISE_PRODUCT_TYPES,
+    );
+    if (!eligibleProductTypes.has(productTypeNameNormalized)) {
+      throw new HttpError(
+        400,
+        'PRODUCT_TYPE_NOT_ELIGIBLE',
+        'Selected product type is not eligible for excise stamp requests',
+      );
+    }
+    const derivedGoodsCategory = trimOrNull(body.goodsCategory) || trimOrNull(product.category?.name);
+    const derivedGoodsDescription =
+      trimOrNull(body.goodsDescription) ||
+      [productName, variantName].filter(Boolean).join(' - ');
+
     const payload = {
       requestNumber: await allocateUniqueReference(
         this.stampRequestRepository.getModel(),
@@ -601,8 +827,14 @@ export class ExciseCommandService {
         'STP',
       ),
       facilityId: facility.id,
-      goodsCategory: trimOrNull(body.goodsCategory),
-      goodsDescription: trimOrNull(body.goodsDescription),
+      productId: product.id,
+      productName,
+      variantId: variant.id,
+      variantName,
+      uomId,
+      uomName,
+      goodsCategory: derivedGoodsCategory,
+      goodsDescription: derivedGoodsDescription,
       quantity,
       stampFeeAmount: null,
       stampFeeCurrency: 'ETB',
@@ -625,12 +857,14 @@ export class ExciseCommandService {
       throw new HttpError(
         400,
         'VALIDATION_ERROR',
-        'goodsCategory and goodsDescription are required',
+        'goodsCategory and goodsDescription are required (directly or derivable from product)',
       );
     }
 
     const created = await this.stampRequestRepository.create(req, payload);
-    return this.stampRequestRepository.findByIdDetailed(req, created.id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateStampRequestPayment = async (req, id, body) => {
@@ -680,11 +914,14 @@ export class ExciseCommandService {
     }
 
     await this.stampRequestRepository.update(req, id, patch);
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   submitStampRequest = async (req, id) => {
     await ensureStampRequestSchema();
+    await ensureExciseConfigSchema();
     const current = await this.stampRequestRepository.findByIdDetailed(req, id);
     if (!current) {
       throw new HttpError(404, 'NOT_FOUND', 'Stamp request not found');
@@ -705,9 +942,13 @@ export class ExciseCommandService {
     }
 
     const submittedAt = new Date();
+    const reviewSlaDays = await this.getPositiveIntConfig(
+      req,
+      EXCISE_CONFIG_KEYS.TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS,
+    );
     const reviewDueAt = addWorkingDays(
       submittedAt,
-      TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS,
+      reviewSlaDays,
     );
     await this.stampRequestRepository.update(req, id, {
       status: STAMP_REQUEST_STATUS.SUBMITTED,
@@ -716,7 +957,9 @@ export class ExciseCommandService {
       rejectionReason: null,
     });
 
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   reviewStampRequest = async (req, id, body) => {
@@ -776,7 +1019,9 @@ export class ExciseCommandService {
     }
 
     await this.stampRequestRepository.update(req, id, patch);
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   fulfillStampRequest = async (req, id) => {
@@ -797,7 +1042,9 @@ export class ExciseCommandService {
       status: STAMP_REQUEST_STATUS.FULFILLED,
       fulfilledAt: new Date(),
     });
-    return this.stampRequestRepository.findByIdDetailed(req, id);
+    return StampRequestResponse.toResponse(
+      await this.stampRequestRepository.findByIdDetailed(req, id),
+    );
   };
 
   createForecast = async (req, body) => {
@@ -828,7 +1075,9 @@ export class ExciseCommandService {
     };
 
     const created = await this.forecastRepository.create(req, payload);
-    return this.forecastRepository.findByIdDetailed(req, created.id);
+    return ForecastResponse.toResponse(
+      await this.forecastRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   updateForecast = async (req, id, body) => {
@@ -864,11 +1113,14 @@ export class ExciseCommandService {
     }
 
     await this.forecastRepository.update(req, id, patch);
-    return this.forecastRepository.findByIdDetailed(req, id);
+    return ForecastResponse.toResponse(
+      await this.forecastRepository.findByIdDetailed(req, id),
+    );
   };
 
   submitForecast = async (req, id) => {
     await ensureForecastSchema();
+    await ensureExciseConfigSchema();
     const current = await this.forecastRepository.findByIdDetailed(req, id);
     if (!current) {
       throw new HttpError(404, 'NOT_FOUND', 'Forecast not found');
@@ -886,11 +1138,12 @@ export class ExciseCommandService {
     const dayDiff = Math.floor(
       (startMonth.getTime() - toUtcMonthStart(now).getTime()) / (24 * 60 * 60 * 1000),
     );
-    if (dayDiff < MIN_STAMP_APPLICATION_LEAD_DAYS) {
+    const minLeadDays = await this.getMinLeadDaysConfig(req);
+    if (dayDiff < minLeadDays) {
       throw new HttpError(
         400,
         'FORECAST_MIN_LEAD_TIME',
-        `Forecast must be submitted at least ${MIN_STAMP_APPLICATION_LEAD_DAYS} days before first forecast month`,
+        `Forecast must be submitted at least ${minLeadDays} days before first forecast month`,
       );
     }
 
@@ -898,7 +1151,9 @@ export class ExciseCommandService {
       status: FORECAST_STATUS.SUBMITTED,
       submittedAt: new Date(),
     });
-    return this.forecastRepository.findByIdDetailed(req, id);
+    return ForecastResponse.toResponse(
+      await this.forecastRepository.findByIdDetailed(req, id),
+    );
   };
 
   createStockEvent = async (req, body) => {
@@ -1006,7 +1261,9 @@ export class ExciseCommandService {
           : {},
     });
 
-    return this.stockEventRepository.findByIdDetailed(req, created.id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, created.id),
+    );
   };
 
   submitStockEvent = async (req, id) => {
@@ -1028,7 +1285,9 @@ export class ExciseCommandService {
       requestedAt: new Date(),
       rejectionReason: null,
     });
-    return this.stockEventRepository.findByIdDetailed(req, id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, id),
+    );
   };
 
   reviewStockEvent = async (req, id, body) => {
@@ -1077,7 +1336,9 @@ export class ExciseCommandService {
     }
 
     await this.stockEventRepository.update(req, id, patch);
-    return this.stockEventRepository.findByIdDetailed(req, id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, id),
+    );
   };
 
   completeStockEvent = async (req, id) => {
@@ -1098,7 +1359,9 @@ export class ExciseCommandService {
       status: STAMP_STOCK_EVENT_STATUS.COMPLETED,
       completedAt: new Date(),
     });
-    return this.stockEventRepository.findByIdDetailed(req, id);
+    return StampStockEventResponse.toResponse(
+      await this.stockEventRepository.findByIdDetailed(req, id),
+    );
   };
 
   createStampVerification = async (req, body, { isPublic = false } = {}) => {
@@ -1185,6 +1448,8 @@ export class ExciseCommandService {
         : new Date(),
     });
 
-    return this.verificationRepository.findByIdDetailed(req, created.id);
+    return StampVerificationResponse.toResponse(
+      await this.verificationRepository.findByIdDetailed(req, created.id),
+    );
   };
 }

@@ -3,11 +3,13 @@ import { STAMP_REQUEST_STATUS } from '../constants/excise.enums.js';
 
 export const stampRequestBodySchema = yup.object({
   facilityId: yup.string().uuid().required(),
-  goodsCategory: yup.string().trim().min(1).max(128).required(),
-  goodsDescription: yup.string().trim().min(1).max(255).required(),
+  productId: yup.string().uuid().required(),
+  variantId: yup.string().uuid().required(),
+  goodsCategory: yup.string().trim().min(1).max(128).nullable(),
+  goodsDescription: yup.string().trim().min(1).max(255).nullable(),
   quantity: yup.number().integer().positive().required(),
   requiredByDate: yup.date().required(),
-  plannedProductionOrImportDate: yup.date().nullable(),
+  plannedProductionOrImportDate: yup.date().required(),
   attachmentUrl: yup.string().trim().max(500).nullable(),
 });
 

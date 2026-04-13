@@ -6,33 +6,20 @@ import {
   STAMP_REQUEST_STATUS,
   STAMP_VERIFICATION_RESULT,
 } from '../../constants/excise.enums.js';
+import { mapExciseDataResponse } from '../_shared/excise-map-response.util.js';
+import { DeliveryNoteResponse } from '../delivery-note/delivery-note.response.js';
+import { FacilityResponse } from '../facility/facility.response.js';
+import { ForecastResponse } from '../forecast/forecast.response.js';
+import { StampRequestResponse } from '../stamp-request/stamp-request.response.js';
+import { StampStockEventResponse } from '../stamp-stock-event/stamp-stock-event.response.js';
+import { StampVerificationResponse } from '../stamp-verification/stamp-verification.response.js';
+import { ensureStampRequestSchema } from './ensure-stamp-request-schema.js';
+import { ensureExciseConfigSchema } from './ensure-excise-config-schema.js';
+import { ExciseConfigResponse } from '../config/config.response.js';
 
-let stampSchemaReadyPromise = null;
 let forecastSchemaReadyPromise = null;
 let stockEventSchemaReadyPromise = null;
 let verificationSchemaReadyPromise = null;
-
-async function ensureStampRequestSchema() {
-  if (stampSchemaReadyPromise) {
-    return stampSchemaReadyPromise;
-  }
-
-  stampSchemaReadyPromise = (async () => {
-    await sequelize.query(`
-      ALTER TABLE "excise_stamp_requests"
-      ADD COLUMN IF NOT EXISTS "submitted_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "review_due_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "reviewed_at" TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS "reviewed_by_user_id" UUID,
-      ADD COLUMN IF NOT EXISTS "review_sla_breached" BOOLEAN DEFAULT FALSE
-    `);
-  })().catch((error) => {
-    stampSchemaReadyPromise = null;
-    throw error;
-  });
-
-  return stampSchemaReadyPromise;
-}
 
 async function ensureForecastSchema() {
   if (forecastSchemaReadyPromise) {
@@ -145,6 +132,7 @@ export class ExciseQueryService {
    *  forecastRepository: import('../../repository/forecast.repository.js').ExciseStampForecastRepository;
    *  stockEventRepository: import('../../repository/stamp-stock-event.repository.js').ExciseStampStockEventRepository;
    *  verificationRepository: import('../../repository/stamp-verification.repository.js').ExciseStampVerificationRepository;
+   *  configRepository: import('../../repository/config.repository.js').ExciseConfigRepository;
    * }} deps
    */
   constructor({
@@ -154,6 +142,7 @@ export class ExciseQueryService {
     forecastRepository,
     stockEventRepository,
     verificationRepository,
+    configRepository,
   }) {
     this.facilityRepository = facilityRepository;
     this.deliveryNoteRepository = deliveryNoteRepository;
@@ -161,46 +150,72 @@ export class ExciseQueryService {
     this.forecastRepository = forecastRepository;
     this.stockEventRepository = stockEventRepository;
     this.verificationRepository = verificationRepository;
+    this.configRepository = configRepository;
   }
 
-  listFacilities = (req, query) =>
-    this.facilityRepository.findAllDetailed(req, query);
+  listConfigs = async (req, query) => {
+    await ensureExciseConfigSchema();
+    const result = await this.configRepository.findAll(
+      req,
+      {
+        order: [['key', 'ASC']],
+      },
+      query,
+    );
+    return mapExciseDataResponse(result, ExciseConfigResponse.toResponse);
+  };
+
+  getConfigByKey = async (req, key) => {
+    await ensureExciseConfigSchema();
+    const entity = await this.configRepository.findOne(req, { key });
+    if (!entity) {
+      throw new HttpError(404, 'NOT_FOUND', 'Excise config not found');
+    }
+    return ExciseConfigResponse.toResponse(entity);
+  };
+
+  listFacilities = async (req, query) => {
+    const result = await this.facilityRepository.findAllDetailed(req, query);
+    return mapExciseDataResponse(result, FacilityResponse.toResponse);
+  };
 
   getFacilityById = async (req, id) => {
     const entity = await this.facilityRepository.findByIdDetailed(req, id);
     if (!entity) {
       throw new HttpError(404, 'NOT_FOUND', 'Facility not found');
     }
-    return entity;
+    return FacilityResponse.toResponse(entity);
   };
 
-  listDeliveryNotes = (req, query) =>
-    this.deliveryNoteRepository.findAllDetailed(req, query);
+  listDeliveryNotes = async (req, query) => {
+    const result = await this.deliveryNoteRepository.findAllDetailed(req, query);
+    return mapExciseDataResponse(result, DeliveryNoteResponse.toResponse);
+  };
 
   getDeliveryNoteById = async (req, id) => {
     const entity = await this.deliveryNoteRepository.findByIdDetailed(req, id);
     if (!entity) {
       throw new HttpError(404, 'NOT_FOUND', 'Delivery note not found');
     }
-    return entity;
+    return DeliveryNoteResponse.toResponse(entity);
   };
 
   listStampRequests = async (req, query) => {
     await ensureStampRequestSchema();
-    return this.stampRequestRepository.findAllDetailed(req, query);
+    const result = await this.stampRequestRepository.findAllDetailed(req, query);
+    return mapExciseDataResponse(result, StampRequestResponse.toResponse);
   };
 
   listStampRequestSlaBreaches = async (req, query = {}) => {
     await ensureStampRequestSchema();
     const now = new Date();
-    return this.stampRequestRepository.findAll(
+    const result = await this.stampRequestRepository.findAll(
       req,
       {
         include: [
           {
             model: models.ExciseFacility,
             as: 'facility',
-            attributes: ['id', 'code', 'name', 'facilityType'],
           },
         ],
         order: [['reviewDueAt', 'ASC']],
@@ -218,6 +233,7 @@ export class ExciseQueryService {
         },
       },
     );
+    return mapExciseDataResponse(result, StampRequestResponse.toResponse);
   };
 
   getStampRequestById = async (req, id) => {
@@ -226,12 +242,13 @@ export class ExciseQueryService {
     if (!entity) {
       throw new HttpError(404, 'NOT_FOUND', 'Stamp request not found');
     }
-    return entity;
+    return StampRequestResponse.toResponse(entity);
   };
 
   listForecasts = async (req, query) => {
     await ensureForecastSchema();
-    return this.forecastRepository.findAllDetailed(req, query);
+    const result = await this.forecastRepository.findAllDetailed(req, query);
+    return mapExciseDataResponse(result, ForecastResponse.toResponse);
   };
 
   getForecastById = async (req, id) => {
@@ -240,12 +257,13 @@ export class ExciseQueryService {
     if (!entity) {
       throw new HttpError(404, 'NOT_FOUND', 'Forecast not found');
     }
-    return entity;
+    return ForecastResponse.toResponse(entity);
   };
 
   listStockEvents = async (req, query) => {
     await ensureStockEventSchema();
-    return this.stockEventRepository.findAllDetailed(req, query);
+    const result = await this.stockEventRepository.findAllDetailed(req, query);
+    return mapExciseDataResponse(result, StampStockEventResponse.toResponse);
   };
 
   getStockEventById = async (req, id) => {
@@ -254,12 +272,13 @@ export class ExciseQueryService {
     if (!entity) {
       throw new HttpError(404, 'NOT_FOUND', 'Stock event not found');
     }
-    return entity;
+    return StampStockEventResponse.toResponse(entity);
   };
 
   listStampVerifications = async (req, query) => {
     await ensureVerificationSchema();
-    return this.verificationRepository.findAllDetailed(req, query);
+    const result = await this.verificationRepository.findAllDetailed(req, query);
+    return mapExciseDataResponse(result, StampVerificationResponse.toResponse);
   };
 
   getStampVerificationById = async (req, id) => {
@@ -268,7 +287,7 @@ export class ExciseQueryService {
     if (!entity) {
       throw new HttpError(404, 'NOT_FOUND', 'Stamp verification not found');
     }
-    return entity;
+    return StampVerificationResponse.toResponse(entity);
   };
 
   getStampVerificationSummary = async (req) => {
@@ -285,6 +304,10 @@ export class ExciseQueryService {
       limit: 10,
       page: 1,
     });
+    const recentMapped = mapExciseDataResponse(
+      recent,
+      StampVerificationResponse.toResponse,
+    );
     return {
       totals: {
         authentic,
@@ -293,7 +316,7 @@ export class ExciseQueryService {
         notFound,
         total: authentic + suspect + cancelledUi + notFound,
       },
-      recent: recent.data || [],
+      recent: recentMapped.data || [],
     };
   };
 }

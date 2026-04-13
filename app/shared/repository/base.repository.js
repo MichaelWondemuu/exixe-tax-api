@@ -294,9 +294,14 @@ export class BaseRepository {
       const isSystem = req[ContextKeys.IS_SYSTEM] === true;
       if (!isSystem && this.Model.ignoreOrganizationFilter !== true) {
         delete enrichedData.organizationId;
+        delete enrichedData.organizationName;
         const organizationId = req[ContextKeys.ORGANIZATION_ID];
+        const organizationName = req[ContextKeys.ORGANIZATION_NAME];
         if (organizationId) {
           enrichedData.organizationId = organizationId;
+        }
+        if (organizationName) {
+          enrichedData.organizationName = organizationName;
         }
       }
     }
@@ -340,8 +345,12 @@ export class BaseRepository {
     const isSystem = req[ContextKeys.IS_SYSTEM] === true;
     if (!isSystem && this.Model.ignoreOrganizationFilter !== true) {
       const organizationId = req[ContextKeys.ORGANIZATION_ID];
+      const organizationName = req[ContextKeys.ORGANIZATION_NAME];
       if (organizationId && !enrichedData.organizationId) {
         enrichedData.organizationId = organizationId;
+      }
+      if (organizationName && !enrichedData.organizationName) {
+        enrichedData.organizationName = organizationName;
       }
     }
 

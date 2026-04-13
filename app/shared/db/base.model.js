@@ -19,22 +19,27 @@ export const getBaseFields = () => ({
     onUpdate: 'CASCADE',
     onDelete: 'RESTRICT',
   },
+  organizationName: {
+    type: DataTypes.STRING(255),
+    field: 'organization_name',
+    allowNull: true,
+  },
   createdAt: {
     type: DataTypes.DATE,
     field: 'created_at',
     allowNull: false,
     defaultValue: DataTypes.NOW,
   },
-  // createdBy: {
-  //   type: DataTypes.UUID,
-  //   field: 'created_by',
-  //   allowNull: true,
-  // },
-  // updatedBy: {
-  //   type: DataTypes.UUID,
-  //   field: 'updated_by',
-  //   allowNull: true,
-  // },
+  createdBy: {
+    type: DataTypes.UUID,
+    field: 'created_by',
+    allowNull: true,
+  },
+  updatedBy: {
+    type: DataTypes.UUID,
+    field: 'updated_by',
+    allowNull: true,
+  },
   updatedAt: {
     type: DataTypes.DATE,
     field: 'updated_at',

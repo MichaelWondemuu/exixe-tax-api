@@ -89,6 +89,11 @@ export const env = Object.freeze({
     ),
     temporaryBanMinutes: toInt(process.env.AUTH_TEMPORARY_BAN_MINUTES, 15),
   }),
+  /** Sequelize sync on startup when true (see DBSYNC). */
+  dbSync:
+    process.env.DBSYNC === undefined || String(process.env.DBSYNC).trim() === ''
+      ? toBool(process.env.DBSYNC, false)
+      : true,
   filesDir: path.resolve(process.env.FILES_DIR || '../../files'),
   keyEncryption: Object.freeze({
     secret: toString(process.env.KEY_ENCRYPTION_SECRET, null),
@@ -105,7 +110,7 @@ export const env = Object.freeze({
     totpIssuer: toString(process.env.MFA_TOTP_ISSUER, 'Cheche Invoice'),
     totpWindow: toInt(process.env.MFA_TOTP_WINDOW, 2),
     backupCodesCount: toInt(process.env.MFA_BACKUP_CODES_COUNT, 10),
-    // SMS provider configuration 
+    // SMS provider configuration
     smsProvider: toString(process.env.SMS_PROVIDER, 'none'),
     smsApiKey: toString(process.env.SMS_API_KEY, null),
     smsApiSecret: toString(process.env.SMS_API_SECRET, null),

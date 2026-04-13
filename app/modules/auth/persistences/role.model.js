@@ -16,11 +16,6 @@ export const Role = (sequelize) => {
         allowNull: false,
         defaultValue: false,
       },
-      organizationName: {
-        type: DataTypes.STRING(255),
-        field: 'organization_name',
-        allowNull: true,
-      },
     },
     {
       ...getBaseOptions('roles'),

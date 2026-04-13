@@ -1,4 +1,7 @@
-import { DataResponseFormat } from './response-formatter.js';
+import {
+  DataResponseFormat,
+  enrichResponseDataItems,
+} from './response-formatter.js';
 
 /**
  * Transform DataResponseFormat to frontend-expected paginated format
@@ -18,7 +21,7 @@ export function formatPaginatedResponse(response, queryParams = {}) {
   const total_pages = page_size > 0 ? Math.ceil(total / page_size) : 0;
 
   return {
-    data: response.data,
+    data: enrichResponseDataItems(response.data),
     total,
     page,
     page_size,
