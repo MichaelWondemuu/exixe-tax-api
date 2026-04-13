@@ -60,6 +60,7 @@ import { SuspiciousProductReport } from '../../modules/enforcement/persistences/
 import { CounterfeitCase } from '../../modules/enforcement/persistences/counterfeit-case.model.js';
 import { CounterfeitCaseStampVerification } from '../../modules/enforcement/persistences/counterfeit-case-stamp-verification.model.js';
 import { ProductRecall } from '../../modules/enforcement/persistences/product-recall.model.js';
+import { ProductionRecord } from '../../modules/enforcement/persistences/production-record.model.js';
 
 // Initialize all models
 export const TokenRevocationModel = TokenRevocation(sequelize);
@@ -123,6 +124,7 @@ export const CounterfeitCaseModel = CounterfeitCase(sequelize);
 export const CounterfeitCaseStampVerificationModel =
   CounterfeitCaseStampVerification(sequelize);
 export const ProductRecallModel = ProductRecall(sequelize);
+export const ProductionRecordModel = ProductionRecord(sequelize);
 
 export const models = {
   TokenRevocation: TokenRevocationModel,
@@ -178,6 +180,7 @@ export const models = {
   CounterfeitCase: CounterfeitCaseModel,
   CounterfeitCaseStampVerification: CounterfeitCaseStampVerificationModel,
   ProductRecall: ProductRecallModel,
+  ProductionRecord: ProductionRecordModel,
 };
 
 Object.values(models).forEach((model) => {

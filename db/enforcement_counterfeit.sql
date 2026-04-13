@@ -92,3 +92,25 @@ CREATE TABLE IF NOT EXISTS product_recalls (
 
 CREATE INDEX IF NOT EXISTS idx_product_recalls_product_status ON product_recalls (product_id, status);
 CREATE INDEX IF NOT EXISTS idx_product_recalls_status_published ON product_recalls (status, published_at);
+
+-- Manufacturing production records (actual produced quantity by org/factory/product/lot)
+CREATE TABLE IF NOT EXISTS production_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations (id),
+  facility_id UUID NOT NULL REFERENCES excise_facilities (id),
+  product_id UUID NOT NULL REFERENCES products (id),
+  product_variant_id UUID REFERENCES product_variants (id),
+  lot_or_batch_code VARCHAR(128),
+  actual_produced_qty NUMERIC(18, 3) NOT NULL,
+  produced_at TIMESTAMPTZ NOT NULL,
+  remarks TEXT,
+  evidence JSONB,
+  reported_by_user_id UUID NOT NULL REFERENCES users (id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_production_records_org_produced_at
+  ON production_records (organization_id, produced_at DESC);
+CREATE INDEX IF NOT EXISTS idx_production_records_product_produced_at
+  ON production_records (product_id, produced_at DESC);

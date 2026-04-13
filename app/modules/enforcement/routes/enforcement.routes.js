@@ -22,18 +22,24 @@ import {
   productRecallPatchBodySchema,
   recallsActiveQuerySchema,
 } from '../schemas/recall.schemas.js';
+import {
+  productionRecordBodySchema,
+  productionRecordPatchSchema,
+} from '../schemas/production-record.schemas.js';
 
 /**
  * @param {{
  *   counterfeitController: import('../controllers/counterfeit.controller.js').CounterfeitController;
  *   suspiciousProductReportController: import('../controllers/suspicious-product-report.controller.js').SuspiciousProductReportController;
  *   productRecallController: import('../controllers/product-recall.controller.js').ProductRecallController;
+ *   productionRecordController: import('../controllers/production-record.controller.js').ProductionRecordController;
  * }} deps
  */
 export const buildEnforcementRouter = ({
   counterfeitController,
   suspiciousProductReportController,
   productRecallController,
+  productionRecordController,
 }) => {
   const router = express.Router();
   const adminRouter = express.Router();
@@ -72,6 +78,23 @@ export const buildEnforcementRouter = ({
     '/recalls/active',
     validateQuery(recallsActiveQuerySchema),
     productRecallController.listActiveRecalls,
+  );
+  router.post(
+    '/production-records',
+    validateBody(productionRecordBodySchema),
+    productionRecordController.createRecord,
+  );
+  router.get('/production-records', productionRecordController.listRecords);
+  router.get(
+    '/production-records/:id',
+    validateParams(idParamsSchema),
+    productionRecordController.getRecordById,
+  );
+  router.patch(
+    '/production-records/:id',
+    validateParams(idParamsSchema),
+    validateBody(productionRecordPatchSchema),
+    productionRecordController.patchRecord,
   );
 
   adminRouter.use(requireSystemUser());
