@@ -26,6 +26,10 @@ import {
   productionRecordBodySchema,
   productionRecordPatchSchema,
 } from '../schemas/production-record.schemas.js';
+import {
+  stockSnapshotBodySchema,
+  stockSnapshotPatchSchema,
+} from '../schemas/stock-snapshot.schemas.js';
 
 /**
  * @param {{
@@ -33,6 +37,7 @@ import {
  *   suspiciousProductReportController: import('../controllers/suspicious-product-report.controller.js').SuspiciousProductReportController;
  *   productRecallController: import('../controllers/product-recall.controller.js').ProductRecallController;
  *   productionRecordController: import('../controllers/production-record.controller.js').ProductionRecordController;
+ *   stockSnapshotController: import('../controllers/stock-snapshot.controller.js').StockSnapshotController;
  * }} deps
  */
 export const buildEnforcementRouter = ({
@@ -40,6 +45,7 @@ export const buildEnforcementRouter = ({
   suspiciousProductReportController,
   productRecallController,
   productionRecordController,
+  stockSnapshotController,
 }) => {
   const router = express.Router();
   const adminRouter = express.Router();
@@ -95,6 +101,23 @@ export const buildEnforcementRouter = ({
     validateParams(idParamsSchema),
     validateBody(productionRecordPatchSchema),
     productionRecordController.patchRecord,
+  );
+  router.post(
+    '/stock-snapshots',
+    validateBody(stockSnapshotBodySchema),
+    stockSnapshotController.createSnapshot,
+  );
+  router.get('/stock-snapshots', stockSnapshotController.listSnapshots);
+  router.get(
+    '/stock-snapshots/:id',
+    validateParams(idParamsSchema),
+    stockSnapshotController.getSnapshotById,
+  );
+  router.patch(
+    '/stock-snapshots/:id',
+    validateParams(idParamsSchema),
+    validateBody(stockSnapshotPatchSchema),
+    stockSnapshotController.patchSnapshot,
   );
 
   adminRouter.use(requireSystemUser());

@@ -114,3 +114,25 @@ CREATE INDEX IF NOT EXISTS idx_production_records_org_produced_at
   ON production_records (organization_id, produced_at DESC);
 CREATE INDEX IF NOT EXISTS idx_production_records_product_produced_at
   ON production_records (product_id, produced_at DESC);
+
+-- Stock snapshots (point-in-time counted stock for reconciliation)
+CREATE TABLE IF NOT EXISTS stock_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations (id),
+  facility_id UUID NOT NULL REFERENCES excise_facilities (id),
+  product_id UUID NOT NULL REFERENCES products (id),
+  product_variant_id UUID REFERENCES product_variants (id),
+  lot_or_batch_code VARCHAR(128),
+  quantity_on_hand NUMERIC(18, 3) NOT NULL,
+  counted_at TIMESTAMPTZ NOT NULL,
+  remarks TEXT,
+  evidence JSONB,
+  reported_by_user_id UUID NOT NULL REFERENCES users (id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stock_snapshots_org_counted_at
+  ON stock_snapshots (organization_id, counted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_stock_snapshots_product_counted_at
+  ON stock_snapshots (product_id, counted_at DESC);
