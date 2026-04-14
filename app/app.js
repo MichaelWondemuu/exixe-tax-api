@@ -66,16 +66,14 @@ const bootstrap = async () => {
     }),
   );
   console.log('DEBUG: env.nodeEnv:', env.nodeEnv);
+  const isProduction = env.nodeEnv === 'production';
   const allowedOrigins = Array.from(
-    new Set(
-      env.nodeEnv === 'production'
-        ? ['https://invoice.cheche.et', 'https://invoice-test.cheche.et']
-        : ['http://localhost:3000', 'http://localhost:3001'],
-    ),
+    new Set(['https://invoice.cheche.et', 'https://invoice-test.cheche.et']),
   );
 
   const corsOptions = {
     origin: (origin, callback) => {
+      if (!isProduction) return callback(null, true);
       // Allow non-browser and same-origin requests (Postman/curl/server-to-server).
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);

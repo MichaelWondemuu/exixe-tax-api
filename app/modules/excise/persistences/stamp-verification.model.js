@@ -52,6 +52,11 @@ export const ExciseStampVerification = (sequelize) => {
         allowNull: true,
         field: 'product_description',
       },
+      buyingProductName: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'buying_product_name',
+      },
       supplierName: {
         type: DataTypes.STRING(255),
         allowNull: true,
@@ -83,6 +88,11 @@ export const ExciseStampVerification = (sequelize) => {
         allowNull: true,
         field: 'merchant_name',
       },
+      address: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'address',
+      },
       city: {
         type: DataTypes.STRING(128),
         allowNull: true,
@@ -97,6 +107,27 @@ export const ExciseStampVerification = (sequelize) => {
         type: DataTypes.STRING(128),
         allowNull: true,
         field: 'woreda',
+      },
+      latitude: {
+        type: DataTypes.DECIMAL(10, 7),
+        allowNull: true,
+        field: 'latitude',
+      },
+      longitude: {
+        type: DataTypes.DECIMAL(10, 7),
+        allowNull: true,
+        field: 'longitude',
+      },
+      shopInfoUpdateCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'shop_info_update_count',
+      },
+      shopInfoUpdatedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'shop_info_updated_at',
       },
       verifiedAt: {
         type: DataTypes.DATE,

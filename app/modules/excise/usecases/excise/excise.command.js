@@ -87,11 +87,19 @@ const STOCK_EVENT_TRANSITIONS = Object.freeze({
 let forecastSchemaReadyPromise = null;
 let stockEventSchemaReadyPromise = null;
 let verificationSchemaReadyPromise = null;
+const MAX_SHOP_INFO_UPDATE_WINDOW_MS = 15 * 60 * 1000;
 
 function trimOrNull(value) {
   if (value === undefined || value === null) return null;
   const cleaned = String(value).trim();
   return cleaned.length > 0 ? cleaned : null;
+}
+
+function normalizeComparableText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
 }
 
 function ensureFutureDate(rawDate, fieldName) {
@@ -112,6 +120,42 @@ function ensurePositiveInteger(rawValue, fieldName) {
     );
   }
   return value;
+}
+
+function ensureCoordinate(rawValue, fieldName, { min, max }) {
+  if (rawValue === undefined || rawValue === null || rawValue === '') {
+    return null;
+  }
+  const value = Number(rawValue);
+  if (!Number.isFinite(value) || value < min || value > max) {
+    throw new HttpError(
+      400,
+      'VALIDATION_ERROR',
+      `${fieldName} must be a number between ${min} and ${max}`,
+    );
+  }
+  return value;
+}
+
+function toVerificationEvidence(baseEvidence, { latitude, longitude, address, merchantName }) {
+  const evidence =
+    baseEvidence && typeof baseEvidence === 'object' && !Array.isArray(baseEvidence)
+      ? { ...baseEvidence }
+      : {};
+  if (latitude !== null || longitude !== null) {
+    evidence.location = {
+      ...(evidence.location || {}),
+      ...(latitude !== null ? { latitude } : {}),
+      ...(longitude !== null ? { longitude } : {}),
+    };
+  }
+  if (address) {
+    evidence.address = evidence.address || address;
+  }
+  if (merchantName) {
+    evidence.merchantName = evidence.merchantName || merchantName;
+  }
+  return evidence;
 }
 
 function toDateOnlyUtc(date) {
@@ -284,21 +328,28 @@ async function ensureVerificationSchema() {
         "id" UUID PRIMARY KEY,
         "verification_number" VARCHAR(64) NOT NULL UNIQUE,
         "organization_id" UUID,
+        "organization_name" VARCHAR(255),
         "facility_id" UUID,
         "actor_type" VARCHAR(32) NOT NULL,
         "channel" VARCHAR(32) NOT NULL DEFAULT 'API',
         "result" VARCHAR(32) NOT NULL,
         "stamp_identifier" VARCHAR(256) NOT NULL,
         "product_description" VARCHAR(255),
+        "buying_product_name" VARCHAR(255),
         "supplier_name" VARCHAR(255),
         "supplier_document_type" VARCHAR(64),
         "supplier_document_number" VARCHAR(128),
         "verification_evidence" JSONB NOT NULL DEFAULT '{}'::jsonb,
         "remarks" TEXT,
         "merchant_name" VARCHAR(255),
+        "address" VARCHAR(255),
         "city" VARCHAR(128),
         "region" VARCHAR(128),
         "woreda" VARCHAR(128),
+        "latitude" DECIMAL(10,7),
+        "longitude" DECIMAL(10,7),
+        "shop_info_update_count" INTEGER NOT NULL DEFAULT 0,
+        "shop_info_updated_at" TIMESTAMPTZ,
         "verified_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -306,10 +357,17 @@ async function ensureVerificationSchema() {
     `);
     await sequelize.query(`
       ALTER TABLE "excise_stamp_verifications"
+      ADD COLUMN IF NOT EXISTS "organization_name" VARCHAR(255),
       ADD COLUMN IF NOT EXISTS "merchant_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "buying_product_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "address" VARCHAR(255),
       ADD COLUMN IF NOT EXISTS "city" VARCHAR(128),
       ADD COLUMN IF NOT EXISTS "region" VARCHAR(128),
-      ADD COLUMN IF NOT EXISTS "woreda" VARCHAR(128)
+      ADD COLUMN IF NOT EXISTS "woreda" VARCHAR(128),
+      ADD COLUMN IF NOT EXISTS "latitude" DECIMAL(10,7),
+      ADD COLUMN IF NOT EXISTS "longitude" DECIMAL(10,7),
+      ADD COLUMN IF NOT EXISTS "shop_info_update_count" INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS "shop_info_updated_at" TIMESTAMPTZ
     `);
   })().catch((error) => {
     verificationSchemaReadyPromise = null;
@@ -399,7 +457,8 @@ export class ExciseCommandService {
     if (
       key === EXCISE_CONFIG_KEYS.STAMP_REQUEST_MIN_LEAD_TIME ||
       key === EXCISE_CONFIG_KEYS.STAMP_REQUEST_MIN_LEAD_DAYS ||
-      key === EXCISE_CONFIG_KEYS.TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS
+      key === EXCISE_CONFIG_KEYS.TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS ||
+      key === EXCISE_CONFIG_KEYS.STAMP_VERIFICATION_SUSPECT_SCAN_COUNT
     ) {
       const parsed = Number(value);
       if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -1388,6 +1447,147 @@ export class ExciseCommandService {
 
   createStampVerification = async (req, body, { isPublic = false } = {}) => {
     await ensureVerificationSchema();
+    const verificationId = trimOrNull(body.verificationId);
+    const stampIdentifierInput = trimOrNull(body.stampIdentifier);
+    const merchantNameForUpdate = Object.prototype.hasOwnProperty.call(body, 'merchantName')
+      ? trimOrNull(body.merchantName)
+      : undefined;
+    const buyingProductNameForUpdate = Object.prototype.hasOwnProperty.call(body, 'buyingProductName')
+      ? trimOrNull(body.buyingProductName)
+      : undefined;
+    const addressForUpdate = Object.prototype.hasOwnProperty.call(body, 'address')
+      ? trimOrNull(body.address)
+      : undefined;
+    const cityForUpdate = Object.prototype.hasOwnProperty.call(body, 'city')
+      ? trimOrNull(body.city)
+      : undefined;
+    const regionForUpdate = Object.prototype.hasOwnProperty.call(body, 'region')
+      ? trimOrNull(body.region)
+      : undefined;
+    const woredaForUpdate = Object.prototype.hasOwnProperty.call(body, 'woreda')
+      ? trimOrNull(body.woreda)
+      : undefined;
+    const latitudeForUpdate = Object.prototype.hasOwnProperty.call(body, 'latitude')
+      ? ensureCoordinate(body.latitude, 'latitude', { min: -90, max: 90 })
+      : undefined;
+    const longitudeForUpdate = Object.prototype.hasOwnProperty.call(body, 'longitude')
+      ? ensureCoordinate(body.longitude, 'longitude', { min: -180, max: 180 })
+      : undefined;
+    const hasEvidenceUpdate =
+      body.verificationEvidence &&
+      typeof body.verificationEvidence === 'object' &&
+      !Array.isArray(body.verificationEvidence);
+
+    if (verificationId) {
+      const current = await this.verificationRepository.findByIdDetailed(req, verificationId);
+      if (!current) {
+        throw new HttpError(404, 'NOT_FOUND', 'Stamp verification not found');
+      }
+      if (stampIdentifierInput && stampIdentifierInput !== current.stampIdentifier) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'stampIdentifier does not match the verification record',
+        );
+      }
+
+      const createdAt = new Date(current.createdAt || current.created_at);
+      if (Number.isNaN(createdAt.getTime())) {
+        throw new HttpError(400, 'VALIDATION_ERROR', 'Verification has invalid createdAt');
+      }
+      if (Date.now() - createdAt.getTime() > MAX_SHOP_INFO_UPDATE_WINDOW_MS) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'Shop/location details can be updated only within 15 minutes of creation',
+        );
+      }
+      if (Number(current.shopInfoUpdateCount || 0) >= 1) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'Shop/location details can only be updated once',
+        );
+      }
+
+      const hasShopUpdatePayload =
+        merchantNameForUpdate !== undefined ||
+        buyingProductNameForUpdate !== undefined ||
+        addressForUpdate !== undefined ||
+        cityForUpdate !== undefined ||
+        regionForUpdate !== undefined ||
+        woredaForUpdate !== undefined ||
+        latitudeForUpdate !== undefined ||
+        longitudeForUpdate !== undefined ||
+        hasEvidenceUpdate;
+      if (!hasShopUpdatePayload) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'Provide at least one field to update: merchantName, buyingProductName, address, city, region, woreda, latitude, longitude, or verificationEvidence',
+        );
+      }
+
+      const nextEvidence = toVerificationEvidence(
+        hasEvidenceUpdate ? body.verificationEvidence : current.verificationEvidence,
+        {
+          latitude: latitudeForUpdate ?? null,
+          longitude: longitudeForUpdate ?? null,
+          address: addressForUpdate,
+          merchantName: merchantNameForUpdate,
+        },
+      );
+      if (buyingProductNameForUpdate !== undefined) {
+        nextEvidence.buyingProductName = buyingProductNameForUpdate;
+      }
+      const nextBuyingProductName =
+        buyingProductNameForUpdate !== undefined
+          ? buyingProductNameForUpdate
+          : trimOrNull(current.buyingProductName);
+      const currentProductDescription = trimOrNull(current.productDescription);
+      const hasBuyingProductMismatch =
+        currentProductDescription &&
+        nextBuyingProductName &&
+        normalizeComparableText(currentProductDescription) !==
+          normalizeComparableText(nextBuyingProductName);
+      const nextResult = hasBuyingProductMismatch
+        ? STAMP_VERIFICATION_RESULT.SUSPECT
+        : current.result;
+      if (hasBuyingProductMismatch) {
+        const existingReasons = Array.isArray(nextEvidence.suspectReasons)
+          ? nextEvidence.suspectReasons
+          : [];
+        if (!existingReasons.includes('BUYING_PRODUCT_NAME_MISMATCH')) {
+          nextEvidence.suspectReasons = [
+            ...existingReasons,
+            'BUYING_PRODUCT_NAME_MISMATCH',
+          ];
+        }
+      }
+      await this.verificationRepository.update(req, verificationId, {
+        ...(merchantNameForUpdate !== undefined
+          ? { merchantName: merchantNameForUpdate }
+          : {}),
+        ...(buyingProductNameForUpdate !== undefined
+          ? { buyingProductName: buyingProductNameForUpdate }
+          : {}),
+        result: nextResult,
+        ...(addressForUpdate !== undefined ? { address: addressForUpdate } : {}),
+        ...(cityForUpdate !== undefined ? { city: cityForUpdate } : {}),
+        ...(regionForUpdate !== undefined ? { region: regionForUpdate } : {}),
+        ...(woredaForUpdate !== undefined ? { woreda: woredaForUpdate } : {}),
+        ...(latitudeForUpdate !== undefined ? { latitude: latitudeForUpdate } : {}),
+        ...(longitudeForUpdate !== undefined ? { longitude: longitudeForUpdate } : {}),
+        verificationEvidence: nextEvidence,
+        shopInfoUpdateCount: Number(current.shopInfoUpdateCount || 0) + 1,
+        shopInfoUpdatedAt: new Date(),
+      });
+
+      return StampVerificationResponse.toResponse(
+        await this.verificationRepository.findByIdDetailed(req, verificationId),
+      );
+    }
+
     const actorTypeRaw = trimOrNull(body.actorType);
     const channel = trimOrNull(body.channel) || STAMP_VERIFICATION_CHANNEL.API;
     const requestedResult = trimOrNull(body.result);
@@ -1427,7 +1627,7 @@ export class ExciseCommandService {
       );
     }
 
-    const stampIdentifier = trimOrNull(body.stampIdentifier);
+    const stampIdentifier = stampIdentifierInput;
     if (!stampIdentifier) {
       throw new HttpError(400, 'VALIDATION_ERROR', 'stampIdentifier is required');
     }
@@ -1443,6 +1643,13 @@ export class ExciseCommandService {
     const supplierDocumentType = trimOrNull(body.supplierDocumentType);
     const supplierDocumentNumber = trimOrNull(body.supplierDocumentNumber);
     const supplierName = trimOrNull(body.supplierName);
+    const merchantName = trimOrNull(body.merchantName);
+    const address = trimOrNull(body.address);
+    const city = trimOrNull(body.city);
+    const region = trimOrNull(body.region);
+    const woreda = trimOrNull(body.woreda);
+    const latitude = ensureCoordinate(body.latitude, 'latitude', { min: -90, max: 90 });
+    const longitude = ensureCoordinate(body.longitude, 'longitude', { min: -180, max: 180 });
     if (!isPublic) {
       if (!supplierDocumentType || !supplierDocumentNumber) {
         throw new HttpError(
@@ -1455,8 +1662,12 @@ export class ExciseCommandService {
 
     const scannedStamp = await models.StampLabel.findOne({
       where: { stampUid: stampIdentifier },
-      attributes: ['id', 'status'],
+      attributes: ['id', 'status', 'merchantId', 'merchantName', 'productName'],
     });
+    const buyingProductName = trimOrNull(body.buyingProductName);
+    const verifiedAt = body.verifiedAt
+      ? ensureFutureDate(body.verifiedAt, 'verifiedAt')
+      : new Date();
     let resolvedResult = requestedResult;
     if (!resolvedResult) {
       if (!scannedStamp) {
@@ -1478,7 +1689,89 @@ export class ExciseCommandService {
       );
     }
 
+    const suspectReasons = [];
+    let observedScanCount = null;
+    let suspectScanThreshold = null;
+    if (scannedStamp && resolvedResult === STAMP_VERIFICATION_RESULT.AUTHENTIC) {
+      const verificationModel = this.verificationRepository.getModel();
+      const existingScanCount = await verificationModel.count({
+        where: { stampIdentifier },
+      });
+      observedScanCount = existingScanCount + 1;
+      suspectScanThreshold = await this.getPositiveIntConfig(
+        req,
+        EXCISE_CONFIG_KEYS.STAMP_VERIFICATION_SUSPECT_SCAN_COUNT,
+      );
+      if (observedScanCount > suspectScanThreshold) {
+        suspectReasons.push('REPEAT_SCAN_COUNT_EXCEEDED');
+      }
+
+      const firstScan = await verificationModel.findOne({
+        where: { stampIdentifier },
+        attributes: ['verifiedAt'],
+        order: [['verifiedAt', 'ASC']],
+      });
+      if (firstScan?.verifiedAt) {
+        const firstDate = new Date(firstScan.verifiedAt);
+        if (
+          firstDate.getUTCFullYear() !== verifiedAt.getUTCFullYear() ||
+          firstDate.getUTCMonth() !== verifiedAt.getUTCMonth()
+        ) {
+          suspectReasons.push('REPEAT_SCAN_DIFFERENT_MONTH_INTERVAL');
+        }
+      }
+
+    }
+    if (suspectReasons.length > 0) {
+      resolvedResult = STAMP_VERIFICATION_RESULT.SUSPECT;
+    }
+
+    const stampOrganizationId =
+      resolvedResult === STAMP_VERIFICATION_RESULT.AUTHENTIC ||
+      resolvedResult === STAMP_VERIFICATION_RESULT.SUSPECT
+        ? trimOrNull(scannedStamp?.merchantId)
+        : null;
+    const stampOrganizationName =
+      resolvedResult === STAMP_VERIFICATION_RESULT.AUTHENTIC ||
+      resolvedResult === STAMP_VERIFICATION_RESULT.SUSPECT
+        ? trimOrNull(scannedStamp?.merchantName)
+        : null;
+    const productDescription =
+      resolvedResult === STAMP_VERIFICATION_RESULT.AUTHENTIC ||
+      resolvedResult === STAMP_VERIFICATION_RESULT.SUSPECT
+        ? trimOrNull(scannedStamp?.productName)
+        : trimOrNull(body.productDescription);
+    if (
+      productDescription &&
+      buyingProductName &&
+      normalizeComparableText(productDescription) !==
+        normalizeComparableText(buyingProductName)
+    ) {
+      if (!suspectReasons.includes('BUYING_PRODUCT_NAME_MISMATCH')) {
+        suspectReasons.push('BUYING_PRODUCT_NAME_MISMATCH');
+      }
+      resolvedResult = STAMP_VERIFICATION_RESULT.SUSPECT;
+    }
+
+    const verificationEvidence = toVerificationEvidence(body.verificationEvidence, {
+      latitude,
+      longitude,
+      address,
+      merchantName,
+    });
+    if (buyingProductName) {
+      verificationEvidence.buyingProductName =
+        verificationEvidence.buyingProductName || buyingProductName;
+    }
+    if (suspectReasons.length > 0) {
+      verificationEvidence.suspectReasons = suspectReasons;
+      verificationEvidence.scanCount = observedScanCount;
+      verificationEvidence.suspectScanThreshold = suspectScanThreshold;
+    }
+
     const created = await this.verificationRepository.create(req, {
+      organizationId: stampOrganizationId,
+      organizationName: stampOrganizationName,
       verificationNumber: await allocateUniqueReference(
         this.verificationRepository.getModel(),
         'verificationNumber',
@@ -1489,24 +1782,21 @@ export class ExciseCommandService {
       channel,
       result: resolvedResult,
       stampIdentifier,
-      productDescription: trimOrNull(body.productDescription),
+      productDescription,
+      buyingProductName,
       supplierName,
       supplierDocumentType,
       supplierDocumentNumber,
-      verificationEvidence:
-        body.verificationEvidence &&
-        typeof body.verificationEvidence === 'object' &&
-        !Array.isArray(body.verificationEvidence)
-          ? body.verificationEvidence
-          : {},
+      verificationEvidence,
       remarks: trimOrNull(body.remarks),
-      merchantName: trimOrNull(body.merchantName),
-      city: trimOrNull(body.city),
-      region: trimOrNull(body.region),
-      woreda: trimOrNull(body.woreda),
-      verifiedAt: body.verifiedAt
-        ? ensureFutureDate(body.verifiedAt, 'verifiedAt')
-        : new Date(),
+      merchantName,
+      address,
+      city,
+      region,
+      woreda,
+      latitude,
+      longitude,
+      verifiedAt,
     });
 
     return StampVerificationResponse.toResponse(

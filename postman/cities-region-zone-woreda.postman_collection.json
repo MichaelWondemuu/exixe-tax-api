@@ -1,0 +1,160 @@
+{
+  "info": {
+    "_postman_id": "be62c16d-a3ea-4494-ab6f-fa8293211cc4",
+    "name": "Lookup Cities - Region Zone Woreda",
+    "description": "Collection for lookup cities endpoints: upload JSON data, create region/zone/woreda, and query regions, zones by region, woredas by zone.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/v1" },
+    { "key": "regionId", "value": "1001" },
+    { "key": "zoneId", "value": "2001" },
+    { "key": "woredaId", "value": "3001" }
+  ],
+  "item": [
+    {
+      "name": "Upload Cities Data (JSON Body)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"regions\": [\n    {\n      \"id\": 1001,\n      \"code\": \"ADD\",\n      \"description\": \"Addis Ababa\",\n      \"region_type\": \"CITY\",\n      \"description_amh\": \"Addis Ababa\"\n    }\n  ],\n  \"zones\": [\n    {\n      \"id\": 2001,\n      \"region_id\": 1001,\n      \"code\": \"BOL\",\n      \"description\": \"Bole\",\n      \"description_amh\": \"Bole\"\n    }\n  ],\n  \"woredas\": [\n    {\n      \"id\": 3001,\n      \"zone_id\": 2001,\n      \"code\": \"W01\",\n      \"description\": \"Woreda 01\",\n      \"description_amh\": \"Woreda 01\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/lookup/cities/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["lookup", "cities", "upload"]
+        }
+      }
+    },
+    {
+      "name": "Create Region",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "const id = res?.data?.id || res?.data?.[0]?.id;",
+              "if (id != null) pm.collectionVariables.set('regionId', String(id));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"ORO\",\n  \"description\": \"Oromia\",\n  \"region_type\": \"REGION\",\n  \"description_amh\": \"Oromia\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/lookup/cities/regions",
+          "host": ["{{baseUrl}}"],
+          "path": ["lookup", "cities", "regions"]
+        }
+      }
+    },
+    {
+      "name": "Get Regions",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/lookup/cities/regions",
+          "host": ["{{baseUrl}}"],
+          "path": ["lookup", "cities", "regions"]
+        }
+      }
+    },
+    {
+      "name": "Create Zone",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "const id = res?.data?.id || res?.data?.[0]?.id;",
+              "if (id != null) pm.collectionVariables.set('zoneId', String(id));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"region_id\": {{regionId}},\n  \"code\": \"EWS\",\n  \"description\": \"East Shewa\",\n  \"description_amh\": \"East Shewa\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/lookup/cities/zones",
+          "host": ["{{baseUrl}}"],
+          "path": ["lookup", "cities", "zones"]
+        }
+      }
+    },
+    {
+      "name": "Get Zones By Region Id",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/lookup/cities/regions/{{regionId}}/zones",
+          "host": ["{{baseUrl}}"],
+          "path": ["lookup", "cities", "regions", "{{regionId}}", "zones"]
+        }
+      }
+    },
+    {
+      "name": "Create Woreda",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "const id = res?.data?.id || res?.data?.[0]?.id;",
+              "if (id != null) pm.collectionVariables.set('woredaId', String(id));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"zone_id\": {{zoneId}},\n  \"code\": \"W12\",\n  \"description\": \"Woreda 12\",\n  \"description_amh\": \"Woreda 12\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/lookup/cities/woredas",
+          "host": ["{{baseUrl}}"],
+          "path": ["lookup", "cities", "woredas"]
+        }
+      }
+    },
+    {
+      "name": "Get Woredas By Zone Id",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/lookup/cities/zones/{{zoneId}}/woredas",
+          "host": ["{{baseUrl}}"],
+          "path": ["lookup", "cities", "zones", "{{zoneId}}", "woredas"]
+        }
+      }
+    }
+  ]
+}

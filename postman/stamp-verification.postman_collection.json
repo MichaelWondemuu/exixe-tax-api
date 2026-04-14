@@ -1,0 +1,175 @@
+{
+  "info": {
+    "name": "Stamp Verification API",
+    "_postman_id": "17b4f771-c50c-4ea4-af7f-15a2051ea4c6",
+    "description": "Focused collection for excise stamp verification flows: create public scan, one-time shop/location update within 15 minutes, and operator/admin reads.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/v1" },
+    { "key": "authToken", "value": "" },
+    { "key": "systemAuthToken", "value": "" },
+    { "key": "verificationId", "value": "" },
+    { "key": "stampIdentifier", "value": "ET-EXS-20260413-34240865EEF7" }
+  ],
+  "item": [
+    {
+      "name": "Public Verification",
+      "item": [
+        {
+          "name": "Create Public Stamp Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const data = j?.data;",
+                  "const id = data?.id || data?.[0]?.id;",
+                  "if (id) pm.collectionVariables.set('verificationId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/public/stamp-verifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "public", "stamp-verifications"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stampIdentifier\": \"{{stampIdentifier}}\",\n  \"qrUrl\": \"http://localhost:3000/stamp-verification/stamps/{{stampIdentifier}}\",\n  \"channel\": \"WEB_PORTAL\",\n  \"actorType\": \"PUBLIC\",\n  \"merchantName\": \"mikcy for test\",\n  \"buyingProductName\": \"Sample Product From Buyer\",\n  \"address\": \"Bole, Addis Ababa\",\n  \"region\": \"amhara\",\n  \"city\": \"addis ababa\",\n  \"woreda\": \"dessie\",\n  \"latitude\": 9.032,\n  \"longitude\": 38.7468,\n  \"verificationEvidence\": {\n    \"browserUrl\": \"http://localhost:3000/stamp-verification\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Shop/Location (One-time <=15 min)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/public/stamp-verifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "public", "stamp-verifications"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verificationId\": \"{{verificationId}}\",\n  \"stampIdentifier\": \"{{stampIdentifier}}\",\n  \"merchantName\": \"mikcy corrected shop\",\n  \"address\": \"Kazanchis, Addis Ababa\",\n  \"region\": \"addis ababa\",\n  \"city\": \"addis ababa\",\n  \"woreda\": \"kirkos\",\n  \"latitude\": 9.0342,\n  \"longitude\": 38.7611,\n  \"verificationEvidence\": {\n    \"source\": \"manual-correction\",\n    \"browserUrl\": \"http://localhost:3000/stamp-verification\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operator Verification",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{authToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Operator Stamp Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/excise/stamp-verifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "stamp-verifications"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stampIdentifier\": \"{{stampIdentifier}}\",\n  \"channel\": \"MOBILE_APP\",\n  \"actorType\": \"IMPORTER\",\n  \"supplierDocumentType\": \"TIN\",\n  \"supplierDocumentNumber\": \"1234567890\",\n  \"supplierName\": \"Sample Supplier\",\n  \"merchantName\": \"Operator Merchant\",\n  \"buyingProductName\": \"Sample Product From Buyer\",\n  \"address\": \"Piassa, Addis Ababa\",\n  \"latitude\": 9.043,\n  \"longitude\": 38.75,\n  \"verificationEvidence\": {\n    \"deviceId\": \"scanner-001\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List Stamp Verifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/stamp-verifications?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "stamp-verifications"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Stamp Verification By Id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/stamp-verifications/{{verificationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "stamp-verifications", "{{verificationId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Verification",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{systemAuthToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Admin List Stamp Verifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-verifications?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-verifications"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Verification Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-verifications/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-verifications", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Admin Get Verification By Id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/excise/admin/stamp-verifications/{{verificationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["excise", "admin", "stamp-verifications", "{{verificationId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

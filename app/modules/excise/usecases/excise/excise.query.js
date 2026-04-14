@@ -99,21 +99,46 @@ async function ensureVerificationSchema() {
         "id" UUID PRIMARY KEY,
         "verification_number" VARCHAR(64) NOT NULL UNIQUE,
         "organization_id" UUID,
+        "organization_name" VARCHAR(255),
         "facility_id" UUID,
         "actor_type" VARCHAR(32) NOT NULL,
         "channel" VARCHAR(32) NOT NULL DEFAULT 'API',
         "result" VARCHAR(32) NOT NULL,
         "stamp_identifier" VARCHAR(256) NOT NULL,
         "product_description" VARCHAR(255),
+        "buying_product_name" VARCHAR(255),
         "supplier_name" VARCHAR(255),
         "supplier_document_type" VARCHAR(64),
         "supplier_document_number" VARCHAR(128),
         "verification_evidence" JSONB NOT NULL DEFAULT '{}'::jsonb,
         "remarks" TEXT,
+        "merchant_name" VARCHAR(255),
+        "address" VARCHAR(255),
+        "city" VARCHAR(128),
+        "region" VARCHAR(128),
+        "woreda" VARCHAR(128),
+        "latitude" DECIMAL(10,7),
+        "longitude" DECIMAL(10,7),
+        "shop_info_update_count" INTEGER NOT NULL DEFAULT 0,
+        "shop_info_updated_at" TIMESTAMPTZ,
         "verified_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+    await sequelize.query(`
+      ALTER TABLE "excise_stamp_verifications"
+      ADD COLUMN IF NOT EXISTS "organization_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "merchant_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "buying_product_name" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "address" VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS "city" VARCHAR(128),
+      ADD COLUMN IF NOT EXISTS "region" VARCHAR(128),
+      ADD COLUMN IF NOT EXISTS "woreda" VARCHAR(128),
+      ADD COLUMN IF NOT EXISTS "latitude" DECIMAL(10,7),
+      ADD COLUMN IF NOT EXISTS "longitude" DECIMAL(10,7),
+      ADD COLUMN IF NOT EXISTS "shop_info_update_count" INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS "shop_info_updated_at" TIMESTAMPTZ
     `);
   })().catch((error) => {
     verificationSchemaReadyPromise = null;

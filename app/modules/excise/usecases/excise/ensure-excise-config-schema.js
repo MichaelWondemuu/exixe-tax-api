@@ -6,10 +6,13 @@ let configSchemaReadyPromise = null;
 export const EXCISE_CONFIG_KEYS = Object.freeze({
   STAMP_REQUEST_MIN_LEAD_TIME: 'STAMP_REQUEST_MIN_LEAD_TIME',
   STAMP_REQUEST_MIN_LEAD_DAYS: 'STAMP_REQUEST_MIN_LEAD_DAYS',
-  TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS: 'TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS',
+  TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS:
+    'TAX_AUTHORITY_REVIEW_SLA_WORKING_DAYS',
   ELIGIBLE_EXCISE_CATEGORY_CODES: 'ELIGIBLE_EXCISE_CATEGORY_CODES',
   ELIGIBLE_EXCISE_PRODUCT_TYPES: 'ELIGIBLE_EXCISE_PRODUCT_TYPES',
   STAMP_LABEL_DIGITAL_LINK_BASE_URL: 'STAMP_LABEL_DIGITAL_LINK_BASE_URL',
+  STAMP_VERIFICATION_SUSPECT_SCAN_COUNT:
+    'STAMP_VERIFICATION_SUSPECT_SCAN_COUNT',
 });
 
 export const EXCISE_DEFAULT_CONFIGS = Object.freeze({
@@ -40,8 +43,13 @@ export const EXCISE_DEFAULT_CONFIGS = Object.freeze({
     description: 'Allowed product type names for excise stamp requests',
   },
   [EXCISE_CONFIG_KEYS.STAMP_LABEL_DIGITAL_LINK_BASE_URL]: {
-    value: 'https://stamp.cheche.et/verify',
+    value: 'https://envoice.cheche.et/stamps',
     description: 'Base URL used to build stamp label digital links',
+  },
+  [EXCISE_CONFIG_KEYS.STAMP_VERIFICATION_SUSPECT_SCAN_COUNT]: {
+    value: 10,
+    description:
+      'Scan count threshold after which repeated verification of one stamp is flagged as SUSPECT',
   },
 });
 
