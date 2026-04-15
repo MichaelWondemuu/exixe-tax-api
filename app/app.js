@@ -39,7 +39,7 @@ const bootstrap = async () => {
     }
     logger.info('Database connected successfully');
 
-    if (env.dbSync) {
+    if (!env.dbSync) {
       logger.info('DB sync enabled: syncing schema (alter)…');
       const ok = await syncDatabase({ alter: true });
       if (ok) {

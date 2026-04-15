@@ -9,6 +9,10 @@ const ITEM_INCLUDE = {
     'predeclarationId',
     'productId',
     'productVariantId',
+    'packagingId',
+    'packageLevel',
+    'parentItemId',
+    'unitsPerParent',
     'quantity',
     'unitValueSnapshot',
     'sellingPriceSnapshot',
@@ -26,6 +30,16 @@ const ITEM_INCLUDE = {
       model: models.ProductVariant,
       as: 'productVariant',
       attributes: ['id', 'name', 'sku', 'unitValue', 'sellingPrice', 'isActive'],
+    },
+    {
+      model: models.Packaging,
+      as: 'packaging',
+      attributes: ['id', 'name'],
+    },
+    {
+      model: models.PredeclarationItem,
+      as: 'parentItem',
+      attributes: ['id', 'packageLevel'],
     },
   ],
 };
@@ -96,5 +110,9 @@ export class PredeclarationRepository extends BaseRepository {
 
   getVariantModel() {
     return models.ProductVariant;
+  }
+
+  getPackagingModel() {
+    return models.Packaging;
   }
 }

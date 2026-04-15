@@ -31,6 +31,7 @@ import { BusinessType } from '../../modules/lookup/persistences/business-type.mo
 import { Category } from '../../modules/lookup/persistences/category.model.js';
 import { ProductType } from '../../modules/lookup/persistences/product-type.model.js';
 import { Measurement } from '../../modules/lookup/persistences/measurement.model.js';
+import { Packaging } from '../../modules/lookup/persistences/packaging.model.js';
 import { Product } from '../../modules/product/persistences/product.model.js';
 import { ProductVariant } from '../../modules/product/persistences/product-variant.model.js';
 import { ProductVariantAttribute } from '../../modules/product/persistences/product-variant-attribute.model.js';
@@ -101,6 +102,7 @@ export const BusinessTypeModel = BusinessType(sequelize);
 export const CategoryModel = Category(sequelize);
 export const ProductTypeModel = ProductType(sequelize);
 export const MeasurementModel = Measurement(sequelize);
+export const PackagingModel = Packaging(sequelize);
 export const ProductModel = Product(sequelize);
 export const ProductVariantModel = ProductVariant(sequelize);
 export const ProductVariantAttributeModel = ProductVariantAttribute(sequelize);
@@ -175,6 +177,7 @@ export const models = {
   Category: CategoryModel,
   ProductType: ProductTypeModel,
   Measurement: MeasurementModel,
+  Packaging: PackagingModel,
   Product: ProductModel,
   ProductVariant: ProductVariantModel,
   ProductVariantAttribute: ProductVariantAttributeModel,

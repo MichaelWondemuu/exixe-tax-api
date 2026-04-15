@@ -8,6 +8,7 @@ import { LicensingAuthorityRepository } from './repository/licensing-authority.r
 import { CategoryRepository } from './repository/category.repository.js';
 import { ProductTypeRepository } from './repository/product-type.repository.js';
 import { MeasurementRepository } from './repository/measurement.repository.js';
+import { PackagingRepository } from './repository/packaging.repository.js';
 import { BusinessTypeRepository } from './repository/business-type.repository.js';
 import { CitiesService } from './usecases/cities/cities.service.js';
 import { CitiesCommandService } from './usecases/cities/cities.command.js';
@@ -23,6 +24,8 @@ import { ProductTypeQueryService } from './usecases/product-types/product-type.q
 import { ProductTypeCommandService } from './usecases/product-types/product-type.command.js';
 import { MeasurementQueryService } from './usecases/measurements/measurement.query.js';
 import { MeasurementCommandService } from './usecases/measurements/measurement.command.js';
+import { PackagingQueryService } from './usecases/packagings/packaging.query.js';
+import { PackagingCommandService } from './usecases/packagings/packaging.command.js';
 import { BusinessTypeQueryService } from './usecases/business-types/business-type.query.js';
 import { CitiesController } from './controllers/cities.controller.js';
 import { SectorController } from './controllers/sector.controller.js';
@@ -31,6 +34,7 @@ import { LicensingAuthorityController } from './controllers/licensing-authority.
 import { CategoryController } from './controllers/category.controller.js';
 import { ProductTypeController } from './controllers/product-type.controller.js';
 import { MeasurementController } from './controllers/measurement.controller.js';
+import { PackagingController } from './controllers/packaging.controller.js';
 import { BusinessTypeController } from './controllers/business-type.controller.js';
 import { buildCitiesRouter } from './routes/cities.routes.js';
 import { buildSectorRouter } from './routes/sector.routes.js';
@@ -39,6 +43,7 @@ import { buildLicensingAuthorityRouter } from './routes/licensing-authority.rout
 import { buildCategoryRouter } from './routes/category.routes.js';
 import { buildProductTypeRouter } from './routes/product-type.routes.js';
 import { buildMeasurementRouter } from './routes/measurement.routes.js';
+import { buildPackagingRouter } from './routes/packaging.routes.js';
 import { buildBusinessTypeRouter } from './routes/business-type.routes.js';
 
 export const createLookupModule = () => {
@@ -51,6 +56,7 @@ export const createLookupModule = () => {
   const categoryRepository = new CategoryRepository();
   const productTypeRepository = new ProductTypeRepository();
   const measurementRepository = new MeasurementRepository();
+  const packagingRepository = new PackagingRepository();
   const businessTypeRepository = new BusinessTypeRepository();
 
   const citiesService = new CitiesService({
@@ -93,6 +99,12 @@ export const createLookupModule = () => {
   const measurementCommandService = new MeasurementCommandService({
     measurementRepository,
   });
+  const packagingQueryService = new PackagingQueryService({
+    packagingRepository,
+  });
+  const packagingCommandService = new PackagingCommandService({
+    packagingRepository,
+  });
   const businessTypeQueryService = new BusinessTypeQueryService({
     businessTypeRepository,
   });
@@ -123,6 +135,10 @@ export const createLookupModule = () => {
     measurementQueryService,
     measurementCommandService,
   });
+  const packagingController = new PackagingController({
+    packagingQueryService,
+    packagingCommandService,
+  });
   const businessTypeController = new BusinessTypeController({
     businessTypeQueryService,
   });
@@ -144,6 +160,7 @@ export const createLookupModule = () => {
   router.use('/categories', buildCategoryRouter({ categoryController }));
   router.use('/product-types', buildProductTypeRouter({ productTypeController }));
   router.use('/measurements', buildMeasurementRouter({ measurementController }));
+  router.use('/packagings', buildPackagingRouter({ packagingController }));
   router.use(
     '/business-types',
     buildBusinessTypeRouter({ businessTypeController }),

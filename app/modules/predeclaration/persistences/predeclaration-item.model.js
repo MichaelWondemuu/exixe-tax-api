@@ -24,6 +24,27 @@ export const PredeclarationItem = (sequelize) => {
         allowNull: true,
         field: 'product_variant_id',
       },
+      packagingId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'packaging_id',
+      },
+      packageLevel: {
+        type: DataTypes.ENUM('UNIT', 'INNER_PACK', 'CASE', 'PALLET'),
+        allowNull: false,
+        defaultValue: 'UNIT',
+        field: 'package_level',
+      },
+      parentItemId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'parent_item_id',
+      },
+      unitsPerParent: {
+        type: DataTypes.DECIMAL(18, 3),
+        allowNull: true,
+        field: 'units_per_parent',
+      },
       quantity: {
         type: DataTypes.DECIMAL(18, 3),
         allowNull: false,
@@ -79,6 +100,18 @@ export const PredeclarationItem = (sequelize) => {
     model.belongsTo(models.ProductVariant, {
       foreignKey: 'productVariantId',
       as: 'productVariant',
+    });
+    model.belongsTo(models.Packaging, {
+      foreignKey: 'packagingId',
+      as: 'packaging',
+    });
+    model.belongsTo(models.PredeclarationItem, {
+      foreignKey: 'parentItemId',
+      as: 'parentItem',
+    });
+    model.hasMany(models.PredeclarationItem, {
+      foreignKey: 'parentItemId',
+      as: 'childItems',
     });
   };
 
