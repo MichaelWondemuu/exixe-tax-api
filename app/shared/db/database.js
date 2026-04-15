@@ -430,6 +430,7 @@ const LOOKUP_MODEL_NAMES = [
   'Category',
   'ProductType',
   'Measurement',
+  'Packaging',
 ];
 
 // Sync database (only for development)

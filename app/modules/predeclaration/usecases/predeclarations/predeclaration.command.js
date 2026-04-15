@@ -54,6 +54,8 @@ function validateDates({ declarationDate, arrivalDate }) {
   }
 }
 
+const PACKAGE_LEVELS = new Set(['UNIT', 'INNER_PACK', 'CASE', 'PALLET']);
+
 export class PredeclarationCommandService {
   /**
    * @param {{
@@ -67,6 +69,14 @@ export class PredeclarationCommandService {
   normalizeItem = (item) => ({
     productId: item.productId,
     productVariantId: item.productVariantId || null,
+    packagingId: item.packagingId || null,
+    packageLevel: String(item.packageLevel || 'UNIT').trim().toUpperCase(),
+    clientRef: item.clientRef?.trim() || null,
+    parentClientRef: item.parentClientRef?.trim() || null,
+    unitsPerParent:
+      item.unitsPerParent !== undefined && item.unitsPerParent !== null
+        ? Number(item.unitsPerParent)
+        : null,
     quantity: Number(item.quantity),
     unitValueSnapshot:
       item.unitValueSnapshot !== undefined && item.unitValueSnapshot !== null
@@ -78,6 +88,117 @@ export class PredeclarationCommandService {
         : null,
     remarks: item.remarks?.trim() || null,
   });
+
+  validateHierarchy = (items) => {
+    const refs = new Set();
+    const parentByRef = new Map();
+    const byRef = new Map();
+
+    for (const item of items) {
+      if (!PACKAGE_LEVELS.has(item.packageLevel)) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          `item.packageLevel must be one of ${Array.from(PACKAGE_LEVELS).join(', ')}`,
+        );
+      }
+
+      if (item.clientRef && refs.has(item.clientRef)) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          `Duplicate item.clientRef "${item.clientRef}"`,
+        );
+      }
+
+      if (item.parentClientRef && !item.clientRef) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'item.clientRef is required when item.parentClientRef is provided',
+        );
+      }
+
+      if (!item.parentClientRef && item.unitsPerParent !== null) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'item.unitsPerParent is only allowed for nested items with parentClientRef',
+        );
+      }
+
+      if (
+        item.unitsPerParent !== null &&
+        (!Number.isFinite(item.unitsPerParent) || item.unitsPerParent <= 0)
+      ) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'item.unitsPerParent must be greater than 0',
+        );
+      }
+
+      if (item.clientRef) {
+        refs.add(item.clientRef);
+        byRef.set(item.clientRef, item);
+      }
+    }
+
+    for (const item of items) {
+      if (!item.clientRef) continue;
+      parentByRef.set(item.clientRef, item.parentClientRef || null);
+      if (item.parentClientRef === item.clientRef) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          `item.parentClientRef cannot equal item.clientRef (${item.clientRef})`,
+        );
+      }
+      if (item.parentClientRef && !refs.has(item.parentClientRef)) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          `Parent reference "${item.parentClientRef}" not found for item "${item.clientRef}"`,
+        );
+      }
+      if (item.parentClientRef) {
+        const parent = byRef.get(item.parentClientRef);
+        if (
+          parent &&
+          (parent.productId !== item.productId ||
+            parent.productVariantId !== item.productVariantId)
+        ) {
+          throw new HttpError(
+            400,
+            'VALIDATION_ERROR',
+            `Nested item "${item.clientRef}" must use same product and variant as parent`,
+          );
+        }
+      }
+    }
+
+    const visiting = new Set();
+    const visited = new Set();
+    const dfs = (ref) => {
+      if (visited.has(ref)) return;
+      if (visiting.has(ref)) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          `Circular parent relationship detected at "${ref}"`,
+        );
+      }
+      visiting.add(ref);
+      const parent = parentByRef.get(ref);
+      if (parent) dfs(parent);
+      visiting.delete(ref);
+      visited.add(ref);
+    };
+
+    for (const ref of parentByRef.keys()) {
+      dfs(ref);
+    }
+  };
 
   ensureDraft = (row) => {
     if (row.status !== 'DRAFT') {
@@ -100,9 +221,12 @@ export class PredeclarationCommandService {
 
     const itemModel = this.predeclarationRepository.getItemModel();
     const variantModel = this.predeclarationRepository.getVariantModel();
+    const packagingModel = this.predeclarationRepository.getPackagingModel();
 
-    for (const rawItem of items) {
-      const item = this.normalizeItem(rawItem);
+    const normalizedItems = items.map((rawItem) => this.normalizeItem(rawItem));
+    this.validateHierarchy(normalizedItems);
+
+    for (const item of normalizedItems) {
       if (!item.productId) {
         throw new HttpError(400, 'VALIDATION_ERROR', 'item.productId is required');
       }
@@ -126,9 +250,76 @@ export class PredeclarationCommandService {
           );
         }
       }
+      if (item.packagingId) {
+        const packaging = await packagingModel.findByPk(item.packagingId, {
+          attributes: ['id'],
+        });
+        if (!packaging) {
+          throw new HttpError(
+            400,
+            'VALIDATION_ERROR',
+            `packaging ${item.packagingId} not found`,
+          );
+        }
+      }
     }
 
-    return itemModel;
+    return { itemModel, normalizedItems };
+  };
+
+  createItemsWithHierarchy = async ({
+    itemModel,
+    predeclarationId,
+    normalizedItems,
+    transaction,
+  }) => {
+    const itemsWithIndex = normalizedItems.map((item, idx) => ({
+      item,
+      idx,
+      key: item.clientRef || `__idx_${idx}`,
+    }));
+    const createdIdByKey = new Map();
+    const pending = [...itemsWithIndex];
+
+    while (pending.length > 0) {
+      let createdAny = false;
+
+      for (let i = 0; i < pending.length; i += 1) {
+        const { item, key } = pending[i];
+        const parentKey = item.parentClientRef || null;
+        if (parentKey && !createdIdByKey.has(parentKey)) continue;
+
+        const row = await itemModel.create(
+          {
+            predeclarationId,
+            productId: item.productId,
+            productVariantId: item.productVariantId,
+            packagingId: item.packagingId,
+            packageLevel: item.packageLevel,
+            parentItemId: parentKey ? createdIdByKey.get(parentKey) : null,
+            unitsPerParent: item.unitsPerParent,
+            quantity: item.quantity,
+            unitValueSnapshot: item.unitValueSnapshot,
+            sellingPriceSnapshot: item.sellingPriceSnapshot,
+            remarks: item.remarks,
+          },
+          { transaction },
+        );
+
+        createdIdByKey.set(key, row.id);
+        pending.splice(i, 1);
+        i -= 1;
+        createdAny = true;
+      }
+
+      if (!createdAny) {
+        throw new HttpError(
+          400,
+          'VALIDATION_ERROR',
+          'Could not resolve nested packaging hierarchy. Check parentClientRef ordering and references.',
+        );
+      }
+    }
   };
 
   createPredeclaration = async (req, body) => {
@@ -149,7 +340,7 @@ export class PredeclarationCommandService {
       );
     }
     validateDates({ declarationDate, arrivalDate });
-    const itemModel = await this.validateItems(body?.items || []);
+    const { itemModel, normalizedItems } = await this.validateItems(body?.items || []);
 
     const row = await sequelize.transaction(async (transaction) => {
       const created = await this.predeclarationRepository.getModel().create(
@@ -164,14 +355,12 @@ export class PredeclarationCommandService {
         { transaction },
       );
 
-      const items = body.items.map((item) => {
-        const normalized = this.normalizeItem(item);
-        return {
-          predeclarationId: created.id,
-          ...normalized,
-        };
+      await this.createItemsWithHierarchy({
+        itemModel,
+        predeclarationId: created.id,
+        normalizedItems,
+        transaction,
       });
-      await itemModel.bulkCreate(items, { transaction });
       return created;
     });
 
@@ -203,7 +392,7 @@ export class PredeclarationCommandService {
     }
     validateDates({ declarationDate, arrivalDate });
 
-    const itemModel = await this.validateItems(body?.items || []);
+    const { itemModel, normalizedItems } = await this.validateItems(body?.items || []);
     await sequelize.transaction(async (transaction) => {
       await this.predeclarationRepository.getModel().update(
         {
@@ -214,13 +403,12 @@ export class PredeclarationCommandService {
         { where: { id }, transaction },
       );
       await itemModel.destroy({ where: { predeclarationId: id }, transaction });
-      await itemModel.bulkCreate(
-        body.items.map((item) => ({
-          predeclarationId: id,
-          ...this.normalizeItem(item),
-        })),
-        { transaction },
-      );
+      await this.createItemsWithHierarchy({
+        itemModel,
+        predeclarationId: id,
+        normalizedItems,
+        transaction,
+      });
     });
 
     return this.predeclarationRepository.findByIdDetailed(req, id);

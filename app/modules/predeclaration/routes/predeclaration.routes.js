@@ -13,6 +13,14 @@ const idParamsSchema = yup.object({
 const itemBodySchema = yup.object({
   productId: yup.string().uuid().required(),
   productVariantId: yup.string().uuid().nullable(),
+  packagingId: yup.string().uuid().nullable(),
+  packageLevel: yup
+    .string()
+    .oneOf(['UNIT', 'INNER_PACK', 'CASE', 'PALLET'])
+    .default('UNIT'),
+  clientRef: yup.string().trim().max(100).nullable(),
+  parentClientRef: yup.string().trim().max(100).nullable(),
+  unitsPerParent: yup.number().moreThan(0).nullable(),
   quantity: yup.number().moreThan(0).required(),
   unitValueSnapshot: yup.number().moreThan(0).nullable(),
   sellingPriceSnapshot: yup.number().min(0).nullable(),
