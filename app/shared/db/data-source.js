@@ -73,6 +73,9 @@ import { ProductionRecord } from '../../modules/enforcement/persistences/product
 import { StockSnapshot } from '../../modules/enforcement/persistences/stock-snapshot.model.js';
 import { ReconciliationRun } from '../../modules/enforcement/persistences/reconciliation-run.model.js';
 import { ReconciliationItem } from '../../modules/enforcement/persistences/reconciliation-item.model.js';
+import { PublicPortalAnnouncement } from '../../modules/public-portal/persistences/public-portal-announcement.model.js';
+import { PublicPortalReport } from '../../modules/public-portal/persistences/public-portal-report.model.js';
+import { PublicPortalNotification } from '../../modules/public-portal/persistences/public-portal-notification.model.js';
 
 // Initialize all models
 export const TokenRevocationModel = TokenRevocation(sequelize);
@@ -149,6 +152,9 @@ export const ProductionRecordModel = ProductionRecord(sequelize);
 export const StockSnapshotModel = StockSnapshot(sequelize);
 export const ReconciliationRunModel = ReconciliationRun(sequelize);
 export const ReconciliationItemModel = ReconciliationItem(sequelize);
+export const PublicPortalAnnouncementModel = PublicPortalAnnouncement(sequelize);
+export const PublicPortalReportModel = PublicPortalReport(sequelize);
+export const PublicPortalNotificationModel = PublicPortalNotification(sequelize);
 
 export const models = {
   TokenRevocation: TokenRevocationModel,
@@ -215,6 +221,9 @@ export const models = {
   StockSnapshot: StockSnapshotModel,
   ReconciliationRun: ReconciliationRunModel,
   ReconciliationItem: ReconciliationItemModel,
+  PublicPortalAnnouncement: PublicPortalAnnouncementModel,
+  PublicPortalReport: PublicPortalReportModel,
+  PublicPortalNotification: PublicPortalNotificationModel,
 };
 
 Object.values(models).forEach((model) => {

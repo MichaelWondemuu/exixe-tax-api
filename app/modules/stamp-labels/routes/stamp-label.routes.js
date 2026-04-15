@@ -59,11 +59,19 @@ export const buildStampLabelRouter = ({ stampLabelController }) => {
   router.get(
     '/request/:stampRequestId/batches',
     validateParams(stampRequestIdParamsSchema),
+    (req, _res, next) => {
+      req.ignoreOrganizationFilter = true;
+      next();
+    },
     stampLabelController.getBatchesByStampRequestId,
   );
   router.get(
     '/request/:stampRequestId/batches/audit',
     validateParams(stampRequestIdParamsSchema),
+    (req, _res, next) => {
+      req.ignoreOrganizationFilter = true;
+      next();
+    },
     stampLabelController.getBatchesAuditByStampRequestId,
   );
   router.get(

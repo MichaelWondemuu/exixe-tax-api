@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import { HttpError } from '../../../../shared/utils/http-error.js';
+import { models } from '../../../../shared/db/data-source.js';
 import {
   STAMP_LABEL_LIFECYCLE_STATUS,
   STAMP_LABEL_VERIFICATION_RESULT,
@@ -76,7 +77,7 @@ export class StampLabelQueryService {
       throw new HttpError(400, 'VALIDATION_ERROR', 'stampRequestId is required');
     }
 
-    const stamps = await this.stampLabelRepository.findMany(
+    let stamps = await this.stampLabelRepository.findMany(
       req,
       { stampRequestId: resolvedStampRequestId },
       {
@@ -84,6 +85,22 @@ export class StampLabelQueryService {
         order: [['createdAt', 'ASC']],
       },
     );
+    if (!Array.isArray(stamps) || stamps.length === 0) {
+      const stampRequest = await models.ExciseStampRequest.findByPk(resolvedStampRequestId, {
+        attributes: ['requestNumber'],
+      });
+      const requestNumber = String(stampRequest?.requestNumber || '').trim();
+      if (requestNumber) {
+        stamps = await this.stampLabelRepository.findMany(
+          req,
+          { stampRequestNumber: requestNumber },
+          {
+            attributes: ['id', 'stampUid', 'status', 'batchId', 'batchNumber', 'createdAt', 'updatedAt'],
+            order: [['createdAt', 'ASC']],
+          },
+        );
+      }
+    }
 
     if (!Array.isArray(stamps) || stamps.length === 0) {
       return {
@@ -186,7 +203,7 @@ export class StampLabelQueryService {
       throw new HttpError(400, 'VALIDATION_ERROR', 'stampRequestId is required');
     }
 
-    const stamps = await this.stampLabelRepository.findMany(
+    let stamps = await this.stampLabelRepository.findMany(
       req,
       { stampRequestId: resolvedStampRequestId },
       {
@@ -205,6 +222,33 @@ export class StampLabelQueryService {
         order: [['createdAt', 'ASC']],
       },
     );
+    if (!Array.isArray(stamps) || stamps.length === 0) {
+      const stampRequest = await models.ExciseStampRequest.findByPk(resolvedStampRequestId, {
+        attributes: ['requestNumber'],
+      });
+      const requestNumber = String(stampRequest?.requestNumber || '').trim();
+      if (requestNumber) {
+        stamps = await this.stampLabelRepository.findMany(
+          req,
+          { stampRequestNumber: requestNumber },
+          {
+            attributes: [
+              'id',
+              'stampUid',
+              'status',
+              'batchId',
+              'batchNumber',
+              'generatedAt',
+              'issuedAt',
+              'auditedAt',
+              'revokedAt',
+              'updatedAt',
+            ],
+            order: [['createdAt', 'ASC']],
+          },
+        );
+      }
+    }
 
     if (!Array.isArray(stamps) || stamps.length === 0) {
       return {

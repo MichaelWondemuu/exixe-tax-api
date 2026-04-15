@@ -27,6 +27,9 @@ const ContextKeys = {
 };
 
 function shouldIgnoreOrganizationFilter(req, Model = null) {
+  if (!req || typeof req !== 'object') {
+    return true;
+  }
   if (req.ignoreOrganizationFilter === true) {
     return true;
   }
@@ -198,6 +201,9 @@ function shouldApplyHierarchicalFilter(req) {
  * @returns {Promise<Object>} Modified query options with organization filters applied
  */
 export async function applyScopeFilters(req, queryOptions = {}, Model = null) {
+  if (!req || typeof req !== 'object') {
+    return queryOptions;
+  }
   // Initialize where clause if not present
   if (!queryOptions.where) {
     queryOptions.where = {};

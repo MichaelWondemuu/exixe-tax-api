@@ -143,6 +143,35 @@ export class StampLabelRepository extends BaseRepository {
       },
     );
   }
+
+  findRestrictedProducts(req, limit = 500) {
+    return this.findMany(
+      req,
+      {
+        enforcementState: {
+          [Op.not]: null,
+        },
+      },
+      {
+        attributes: [
+          'id',
+          'productName',
+          'enforcementState',
+          'updatedAt',
+          'merchantName',
+          'stampUid',
+          'batchNumber',
+          'productionDate',
+          'revokedAt',
+          'notes',
+          'isImported',
+          'ethiopiaRevenueOffice',
+        ],
+        order: [['updatedAt', 'DESC']],
+        limit,
+      },
+    );
+  }
 }
 
 export class StampLabelEventRepository extends BaseRepository {

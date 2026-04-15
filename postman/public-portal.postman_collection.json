@@ -1,0 +1,376 @@
+{
+  "info": {
+    "_postman_id": "f4d87f2b-4ab7-4e1e-8d2a-1b7048aa5f5c",
+    "name": "Public Portal API",
+    "description": "Postman collection for Public Portal public and admin endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/v1" },
+    { "key": "stampUid", "value": "ET-EXS-20260413-34240865EEF7" },
+    { "key": "reportReference", "value": "" },
+    { "key": "reporterId", "value": "public-user-001" },
+    { "key": "announcementId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Verify Stamp",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stampUid\": \"{{stampUid}}\",\n  \"channel\": \"WEB_PORTAL\",\n  \"locationCode\": \"ADDIS-BOLE\",\n  \"remarks\": \"Public portal verification\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "verification"]
+            }
+          }
+        },
+        {
+          "name": "List Announcements (All)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/announcements",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "announcements"]
+            }
+          }
+        },
+        {
+          "name": "List Announcements (Filtered)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/announcements?category=ALERT&priority=HIGH",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "announcements"],
+              "query": [
+                { "key": "category", "value": "ALERT" },
+                { "key": "priority", "value": "HIGH" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Restricted Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/restricted-products",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "restricted-products"]
+            }
+          }
+        },
+        {
+          "name": "List Portal Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const row = j?.data?.[0] || j?.data;",
+                  "if (row?.id) pm.collectionVariables.set('productId', row.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "products"]
+            }
+          }
+        },
+        {
+          "name": "List Portal Product Variants",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/products/{{productId}}/variants",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "products", "{{productId}}", "variants"]
+            }
+          }
+        },
+        {
+          "name": "List Portal Product Types",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/product-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "product-types"]
+            }
+          }
+        },
+        {
+          "name": "List Portal Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Catalog Bootstrap",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const products = j?.data?.products || [];",
+                  "if (products[0]?.id) pm.collectionVariables.set('productId', products[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/catalog/bootstrap?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "catalog", "bootstrap"],
+              "query": [
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Suspicious Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const row = j?.data?.[0] || j?.data;",
+                  "if (row?.reference) pm.collectionVariables.set('reportReference', row.reference);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportType\": \"SUSPICIOUS_STAMP\",\n  \"stampUid\": \"{{stampUid}}\",\n  \"channel\": \"WEB_PORTAL\",\n  \"productName\": \"Unknown beverage\",\n  \"address\": \"Bole Road\",\n  \"city\": \"Addis Ababa\",\n  \"region\": \"Addis Ababa\",\n  \"woreda\": \"Kirkos\",\n  \"latitude\": 9.032,\n  \"longitude\": 38.7468,\n  \"location\": \"Addis Ababa\",\n  \"comments\": \"The product label looks suspicious.\",\n  \"photos\": [\n    \"https://example.com/photo1.jpg\"\n  ],\n  \"reporterName\": \"Public User\",\n  \"reporterContact\": \"+251900000000\",\n  \"reporterId\": \"{{reporterId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "reports"]
+            }
+          }
+        },
+        {
+          "name": "Track Report Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/reports/{{reportReference}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "reports", "{{reportReference}}"]
+            }
+          }
+        },
+        {
+          "name": "List Notifications By Reporter",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/notifications?reporterId={{reporterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "notifications"],
+              "query": [
+                { "key": "reporterId", "value": "{{reporterId}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{adminToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Announcement",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const row = j?.data?.[0] || j?.data;",
+                  "if (row?.id) pm.collectionVariables.set('announcementId', row.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"ALERT\",\n  \"priority\": \"HIGH\",\n  \"title\": \"Counterfeit Alert - New Batch\",\n  \"message\": \"Avoid buying products from unverified sellers.\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/announcements",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "announcements"]
+            }
+          }
+        },
+        {
+          "name": "List Reports (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "reports"]
+            }
+          }
+        },
+        {
+          "name": "List Reports (Admin - Under Review)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/reports?status=UNDER_REVIEW",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "reports"],
+              "query": [
+                { "key": "status", "value": "UNDER_REVIEW" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Report Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"UNDER_REVIEW\",\n  \"note\": \"Assigned to inspector unit.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/reports/{{reportReference}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "reports", "{{reportReference}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Report Status - Action Taken",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTION_TAKEN\",\n  \"note\": \"Field inspection completed and action applied.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/reports/{{reportReference}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "reports", "{{reportReference}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Report Status - Closed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CLOSED\",\n  \"note\": \"Case resolved and closed.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/reports/{{reportReference}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "reports", "{{reportReference}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reporterId\": \"{{reporterId}}\",\n  \"type\": \"ALERT\",\n  \"title\": \"Fraud alert\",\n  \"message\": \"Please avoid suspicious products and report immediately.\",\n  \"payload\": {\n    \"severity\": \"HIGH\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Create Broadcast Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"ALERT\",\n  \"title\": \"Public warning\",\n  \"message\": \"Avoid products with invalid excise stamps.\",\n  \"payload\": {\n    \"scope\": \"PUBLIC\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal/admin/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["portal", "admin", "notifications"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
